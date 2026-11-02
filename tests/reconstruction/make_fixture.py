@@ -36,13 +36,35 @@ def texture(rng: np.random.Generator, w: int, h: int) -> np.ndarray:
 
 
 def exif_bytes(orientation: int = 1) -> bytes:
-    ex = Image.Exif()
-    ex[0x010F] = "ScannitFixture"
-    ex[0x0110] = "Synthetic-1"
-    ex[0x0112] = orientation
-    ex.get_ifd(0x8769)[0x920A] = 4.2  # FocalLength
-    ex.get_ifd(0x8769)[0xA405] = 26  # FocalLengthIn35mmFilm
-    return ex.tobytes()
+    """Hand-built little-endian EXIF block, so the fixture is identical on every Pillow version.
+
+    IFD0: Make, Model, Orientation, ExifIFD pointer. Exif IFD: FocalLength 4.2 mm, FocalLengthIn35mmFilm 26.
+    """
+    import struct
+
+    make, model = b"ScannitFixture\x00", b"Synthetic-1\x00"
+    ifd0_off, n0 = 8, 4
+    exif_off = ifd0_off + 2 + n0 * 12 + 4
+    n1 = 2
+    data_off = exif_off + 2 + n1 * 12 + 4
+    make_off, model_off = data_off, data_off + len(make)
+    focal_off = model_off + len(model)
+
+    def entry(tag, typ, count, value: bytes) -> bytes:
+        return struct.pack("<HHI", tag, typ, count) + value.ljust(4, b"\x00")
+
+    ifd0 = struct.pack("<H", n0) + b"".join([
+        entry(0x010F, 2, len(make), struct.pack("<I", make_off)),
+        entry(0x0110, 2, len(model), struct.pack("<I", model_off)),
+        entry(0x0112, 3, 1, struct.pack("<H", orientation)),
+        entry(0x8769, 4, 1, struct.pack("<I", exif_off)),
+    ]) + struct.pack("<I", 0)
+    exif_ifd = struct.pack("<H", n1) + b"".join([
+        entry(0x920A, 5, 1, struct.pack("<I", focal_off)),
+        entry(0xA405, 3, 1, struct.pack("<H", 26)),
+    ]) + struct.pack("<I", 0)
+    tiff = b"II*\x00" + struct.pack("<I", ifd0_off) + ifd0 + exif_ifd + make + model + struct.pack("<II", 42, 10)
+    return b"Exif\x00\x00" + tiff
 
 
 def build(out: Path) -> list[Path]:
