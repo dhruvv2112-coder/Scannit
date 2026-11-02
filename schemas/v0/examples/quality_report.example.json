@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1.0",
+  "job_id": "job-0001",
+  "generated_at": "2026-11-03T01:00:00Z",
+  "images_total": 400,
+  "images_rejected_blur": 22,
+  "images_rejected_duplicate": 31,
+  "images_registered": 330,
+  "registered_fraction": 0.9565,
+  "reprojection_error_px": {
+    "mean": 0.71,
+    "median": 0.62,
+    "p95": 1.6
+  },
+  "sparse_points": 85000,
+  "scale_status": "metric_validated",
+  "control_residuals_mm": {
+    "count": 1,
+    "rms": 0.0,
+    "max": 0.0
+  },
+  "checkpoint_errors_mm": {
+    "count": 1,
+    "p50": 6.1,
+    "p95": 6.1,
+    "max": 6.1,
+    "tolerance_mm": 10,
+    "pass": true
+  },
+  "dense_point_density_per_m2": null,
+  "texture_coverage_fraction": null,
+  "unreconstructed_area_fraction": null,
+  "stage_timings_s": {
+    "ingest": 119
+  },
+  "peak_memory_mb": 3100,
+  "environment": {
+    "os": "Linux",
+    "python": "3.11.9",
+    "tools": {
+      "colmap": "3.12"
+    }
+  },
+  "notes": [
+    "Example values only; not a measurement."
+  ]
+}
