@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+# Source imagery and job outputs never go in Git
+data/
+work/
+outputs/
+*.mp4
+*.mov
+*.MOV
+*.dng
+*.DNG
+!tests/**/fixtures/**
