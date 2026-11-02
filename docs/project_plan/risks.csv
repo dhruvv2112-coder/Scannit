@@ -1,0 +1,7 @@
+ID,Risk,Likelihood,Impact,Mitigation,Owner,Status
+RSK-01,Cross-account merge conflicts on shared schemas,Medium,High,Small PRs; version field in schemas; explicit compatibility tests,Account2,OPEN
+RSK-02,Reconstruction pipeline produces non-metric output,Medium,Critical,Validation step with known-dimension reference; confidence limits,Account1,OPEN
+RSK-03,Large dataset jobs exceed memory/time budget,High,High,Streaming ingest; chunked processing; resource budgets per stage,Account2,OPEN
+RSK-04,PostGIS tile queries slow at scale,Low,Medium,Spatial indexing; query plan analysis; pagination,Account2,OPEN
+RSK-05,Google Sheet sync not authorized in time,Medium,Low,CSV is source of truth; sheet is optional mirror; degrade gracefully,Account2,OPEN
+RSK-06,CI flakiness from external service dependencies,Medium,Medium,Mock external calls; containerised integration tests; retry logic,Account2,OPEN
