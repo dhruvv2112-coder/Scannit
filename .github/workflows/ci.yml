@@ -23,5 +23,5 @@ jobs:
       - name: Python deps
         run: |
           pip install -r requirements-dev.txt
-          for f in packages/*/requirements.txt; do [ -f "$f" ] && pip install -r "$f"; done
+          for f in packages/*/requirements.txt; do if [ -f "$f" ]; then pip install -r "$f"; fi; done
       - run: make ci
