@@ -1,7 +1,6 @@
 """Tests for the job state machine — transition validation and progress tracking."""
 
 import pytest
-
 from app.state.machine import (
     InvalidTransition,
     compute_progress,
@@ -9,6 +8,7 @@ from app.state.machine import (
     next_stage,
     validate_transition,
 )
+
 from scannit_schemas.enums import PIPELINE_STAGES, JobStatus
 
 

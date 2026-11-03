@@ -9,7 +9,6 @@ from unittest.mock import MagicMock
 
 from scannit_schemas.enums import JobStatus
 
-
 # --- Mock celery before importing the worker module ---
 # The worker module imports from app.celery_app which requires celery.
 # We mock it at the module level so the import succeeds without celery installed.
