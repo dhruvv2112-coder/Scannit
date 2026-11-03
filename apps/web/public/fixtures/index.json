@@ -1,0 +1,9 @@
+{
+  "scenes": [
+    {
+      "id": "sample-site",
+      "label": "Synthetic sample site (40 x 40 m)",
+      "manifest": "sample-site.manifest.json"
+    }
+  ]
+}

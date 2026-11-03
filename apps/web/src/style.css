@@ -17,3 +17,20 @@ html, body, #root, .root { margin: 0; height: 100%; background: #14171c; color: 
   font: inherit; color: inherit; background: #222831; border: 1px solid #47505c; border-radius: 5px; padding: 4px 10px; cursor: pointer;
 }
 .hud button:focus-visible { outline: 2px solid #ff9a3c; outline-offset: 2px; }
+.hud { max-height: calc(100vh - 24px); overflow-y: auto; width: min(340px, calc(100vw - 24px)); max-width: none; box-sizing: border-box; }
+.hud .row { display: flex; gap: 8px; align-items: center; margin-bottom: 4px; }
+.hud select { font: inherit; color: inherit; background: #222831; border: 1px solid #47505c; border-radius: 5px; padding: 2px 4px; flex: 1; min-width: 0; }
+.hud .muted { color: #8893a0; margin: 2px 0; }
+.hud .state { border: 1px solid #47505c; border-radius: 6px; padding: 6px 8px; margin: 8px 0; }
+.hud .state.bad { border-color: #ff8a65; color: #ffb59e; }
+.hud .state ul { margin: 4px 0; padding-left: 16px; }
+.hud .badge { display: inline-block; border-radius: 4px; padding: 2px 8px; margin: 6px 0; font-weight: 600; }
+.hud .badge.ok { background: rgb(123 216 143 / 0.15); color: #7bd88f; border: 1px solid #7bd88f; }
+.hud .badge.warn { background: rgb(255 154 60 / 0.12); color: #ffb36b; border: 1px solid #ff9a3c; }
+.hud .warnings { color: #ffb36b; margin: 4px 0 8px; padding-left: 16px; }
+.hud .tools { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+.hud button[aria-pressed='true'] { background: #3a2a18; border-color: #ff9a3c; }
+.hud .measure { border-top: 1px solid #2c333c; padding-top: 6px; }
+.hud .dist { font-size: 18px; font-weight: 600; color: #ff9a3c; margin: 4px 0; }
+.hud a { color: #8cc4ff; }
+.hud ul { overflow-wrap: anywhere; }
