@@ -48,17 +48,13 @@ class TestSpecialTransitions:
         """Any state can transition to FAILED."""
         for s in JobStatus:
             if s != JobStatus.FAILED:
-                assert is_valid_transition(s, JobStatus.FAILED), (
-                    f"{s} → FAILED should be valid"
-                )
+                assert is_valid_transition(s, JobStatus.FAILED), f"{s} → FAILED should be valid"
 
     def test_any_to_cancelled(self):
         """Any state can transition to CANCELLED."""
         for s in JobStatus:
             if s != JobStatus.CANCELLED:
-                assert is_valid_transition(s, JobStatus.CANCELLED), (
-                    f"{s} → CANCELLED should be valid"
-                )
+                assert is_valid_transition(s, JobStatus.CANCELLED), f"{s} → CANCELLED should be valid"
 
     def test_failed_to_retrying(self):
         assert is_valid_transition(JobStatus.FAILED, JobStatus.RETRYING)
@@ -66,9 +62,7 @@ class TestSpecialTransitions:
     def test_retrying_to_pipeline_stage(self):
         """RETRYING can resume at any pipeline stage."""
         for s in PIPELINE_STAGES:
-            assert is_valid_transition(JobStatus.RETRYING, s), (
-                f"RETRYING → {s} should be valid"
-            )
+            assert is_valid_transition(JobStatus.RETRYING, s), f"RETRYING → {s} should be valid"
 
     def test_cancelled_cannot_retry(self):
         """CANCELLED is terminal — cannot move to RETRYING."""

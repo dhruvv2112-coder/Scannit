@@ -71,18 +71,20 @@ ARTIFACT_PRODUCING_STAGES: set[JobStatus] = {
 }
 
 # Allowed config keys — reject anything not in this set
-ALLOWED_CONFIG_KEYS: frozenset[str] = frozenset({
-    "dense",
-    "max_frames",
-    "mesh_quality",
-    "texture_resolution",
-    "scale_reference_path",
-    "coordinate_system",
-    "output_format",
-    "lod_levels",
-    "skip_materials",
-    "skip_tiling",
-})
+ALLOWED_CONFIG_KEYS: frozenset[str] = frozenset(
+    {
+        "dense",
+        "max_frames",
+        "mesh_quality",
+        "texture_resolution",
+        "scale_reference_path",
+        "coordinate_system",
+        "output_format",
+        "lod_levels",
+        "skip_materials",
+        "skip_tiling",
+    }
+)
 
 
 def _validate_config(config: dict[str, Any]) -> dict[str, Any]:
@@ -104,10 +106,14 @@ def _build_cli_args(
     args = [
         RECON_CLI,
         "run-stage",
-        "--stage", stage.value.lower(),
-        "--job-id", job_id,
-        "--dataset-path", dataset_path,
-        "--work-dir", work_dir,
+        "--stage",
+        stage.value.lower(),
+        "--job-id",
+        job_id,
+        "--dataset-path",
+        dataset_path,
+        "--work-dir",
+        work_dir,
     ]
 
     # Add safe config overrides
@@ -136,9 +142,7 @@ class JobCallbacks:
     """
 
     def __init__(self, api_base_url: str | None = None) -> None:
-        self.api_base_url = api_base_url or os.environ.get(
-            "SCANNIT_API_URL", "http://api:8000"
-        )
+        self.api_base_url = api_base_url or os.environ.get("SCANNIT_API_URL", "http://api:8000")
         # In-memory fallback for when API is not reachable
         self._local_state: dict[str, dict[str, Any]] = {}
 
@@ -152,7 +156,9 @@ class JobCallbacks:
         """Update job status — posts to API or stores locally."""
         logger.info(
             "Job %s → %s (%.1f%%)",
-            job_id, status.value, progress_pct,
+            job_id,
+            status.value,
+            progress_pct,
         )
         self._local_state[job_id] = {
             "status": status.value,
@@ -175,7 +181,10 @@ class JobCallbacks:
         artifact_id = str(uuid.uuid4())
         logger.info(
             "Artifact registered: job=%s stage=%s hash=%s id=%s",
-            job_id, stage.value, content_hash[:12], artifact_id,
+            job_id,
+            stage.value,
+            content_hash[:12],
+            artifact_id,
         )
         # TODO: POST to {api_base_url}/api/v1/artifacts
         return artifact_id
@@ -234,7 +243,8 @@ def run_reconstruction(
         # Check for cancellation
         if self.is_aborted():
             callbacks.update_job_status(
-                job_id, JobStatus.CANCELLED,
+                job_id,
+                JobStatus.CANCELLED,
                 compute_progress(current_status),
             )
             return {"job_id": job_id, "status": "CANCELLED", "artifacts": artifacts}
@@ -271,16 +281,15 @@ def run_reconstruction(
             )
 
             if result.returncode != 0:
-                error_msg = (
-                    f"Stage {target_stage.value} failed (exit {result.returncode}): "
-                    f"{result.stderr[:500]}"
-                )
+                error_msg = f"Stage {target_stage.value} failed (exit {result.returncode}): {result.stderr[:500]}"
                 logger.error(error_msg)
 
                 # Retry logic for transient failures
                 if self.request.retries < self.max_retries:
                     callbacks.update_job_status(
-                        job_id, JobStatus.RETRYING, progress,
+                        job_id,
+                        JobStatus.RETRYING,
+                        progress,
                         error_message=error_msg,
                     )
                     raise self.retry(exc=RuntimeError(error_msg))
@@ -309,13 +318,15 @@ def run_reconstruction(
                             content_hash=content_hash,
                             byte_size=byte_size,
                         )
-                        artifacts.append({
-                            "id": artifact_id,
-                            "stage": target_stage.value,
-                            "content_hash": content_hash,
-                            "path": str(artifact_file),
-                            "byte_size": byte_size,
-                        })
+                        artifacts.append(
+                            {
+                                "id": artifact_id,
+                                "stage": target_stage.value,
+                                "content_hash": content_hash,
+                                "path": str(artifact_file),
+                                "byte_size": byte_size,
+                            }
+                        )
 
     # Transition to COMPLETE
     try:

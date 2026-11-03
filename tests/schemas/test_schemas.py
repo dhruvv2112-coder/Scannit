@@ -1,4 +1,5 @@
 """Every v0 schema is valid JSON Schema 2020-12 and its example instance validates."""
+
 import json
 from pathlib import Path
 
@@ -8,12 +9,17 @@ from referencing import Registry, Resource
 
 SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas" / "v0"
 SCHEMAS = {p.name: json.loads(p.read_text()) for p in SCHEMA_DIR.glob("*.schema.json")}
-REGISTRY = Registry().with_resources(
-    (s["$id"], Resource.from_contents(s)) for s in SCHEMAS.values()
-)
+REGISTRY = Registry().with_resources((s["$id"], Resource.from_contents(s)) for s in SCHEMAS.values())
 EXPECTED = {
-    "common", "transform", "camera_model", "reconstruction_job", "mesh_artifact",
-    "texture_artifact", "spatial_tile", "quality_report", "ingest_manifest",
+    "common",
+    "transform",
+    "camera_model",
+    "reconstruction_job",
+    "mesh_artifact",
+    "texture_artifact",
+    "spatial_tile",
+    "quality_report",
+    "ingest_manifest",
 }
 
 

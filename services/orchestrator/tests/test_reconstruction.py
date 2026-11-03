@@ -91,8 +91,7 @@ class TestCliArgs:
         )
         # Only the simple "dense" key should produce a flag
         flag_count = sum(
-            1 for a in args
-            if a.startswith("--") and a not in ("--stage", "--job-id", "--dataset-path", "--work-dir")
+            1 for a in args if a.startswith("--") and a not in ("--stage", "--job-id", "--dataset-path", "--work-dir")
         )
         assert flag_count == 1
 

@@ -7,6 +7,7 @@ This test bridges the two contract layers:
 
 It verifies that shared enum values and structural invariants stay in sync.
 """
+
 import json
 from pathlib import Path
 
@@ -16,9 +17,7 @@ from referencing import Registry, Resource
 
 SCHEMA_DIR = Path(__file__).resolve().parents[2] / "schemas" / "v0"
 SCHEMAS = {p.name: json.loads(p.read_text()) for p in SCHEMA_DIR.glob("*.schema.json")}
-REGISTRY = Registry().with_resources(
-    (s["$id"], Resource.from_contents(s)) for s in SCHEMAS.values()
-)
+REGISTRY = Registry().with_resources((s["$id"], Resource.from_contents(s)) for s in SCHEMAS.values())
 
 
 def _validator(name: str) -> Draft202012Validator:
@@ -40,9 +39,7 @@ def test_job_status_enums_mappable():
     """
     from scannit_schemas.enums import JobStatus
 
-    json_schema_statuses = set(
-        SCHEMAS["reconstruction_job.schema.json"]["properties"]["status"]["enum"]
-    )
+    json_schema_statuses = set(SCHEMAS["reconstruction_job.schema.json"]["properties"]["status"]["enum"])
     pydantic_statuses = {s.value for s in JobStatus}
 
     # Define the expected mapping from JSON Schema → Pydantic
@@ -63,8 +60,7 @@ def test_job_status_enums_mappable():
     for js_status, py_status in STATUS_MAP.items():
         if py_status is not None:
             assert py_status in pydantic_statuses, (
-                f"JSON Schema '{js_status}' maps to '{py_status}' "
-                f"but that's not in Pydantic JobStatus"
+                f"JSON Schema '{js_status}' maps to '{py_status}' but that's not in Pydantic JobStatus"
             )
 
 
@@ -103,12 +99,11 @@ def test_schema_version_field_present():
         if name == "common.schema.json":
             continue
         if "required" in schema:
-            assert "schema_version" in schema["required"], (
-                f"{name} missing schema_version in required"
-            )
+            assert "schema_version" in schema["required"], f"{name} missing schema_version in required"
 
     # Pydantic (tested separately in 27 model tests, but verify here too)
     from scannit_schemas.models import ScannitBase
+
     instance = ScannitBase()
     assert hasattr(instance, "schema_version")
     assert instance.schema_version == "0.1.0"
@@ -124,9 +119,14 @@ def test_json_schema_examples_all_valid():
         pytest.skip("No examples directory")
 
     expected_schemas = {
-        "camera_model", "transform", "reconstruction_job",
-        "mesh_artifact", "texture_artifact", "spatial_tile",
-        "quality_report", "ingest_manifest",
+        "camera_model",
+        "transform",
+        "reconstruction_job",
+        "mesh_artifact",
+        "texture_artifact",
+        "spatial_tile",
+        "quality_report",
+        "ingest_manifest",
     }
 
     for name in expected_schemas:

@@ -106,10 +106,7 @@ def compute_progress(status: JobStatus) -> float:
     if idx < 0:
         return 0.0
 
-    return sum(
-        STAGE_WEIGHTS.get(PIPELINE_STAGES[i], 0.0)
-        for i in range(idx + 1)
-    )
+    return sum(STAGE_WEIGHTS.get(PIPELINE_STAGES[i], 0.0) for i in range(idx + 1))
 
 
 def next_stage(current: JobStatus) -> JobStatus | None:
