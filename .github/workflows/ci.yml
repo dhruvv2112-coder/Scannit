@@ -67,9 +67,23 @@ jobs:
       - name: Test API
         run: pytest services/api/tests -v
 
+  test-orchestrator:
+    runs-on: ubuntu-latest
+    needs: [lint, test-pydantic-schemas]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -e "packages/shared-schemas[dev]"
+      - name: Test orchestrator (state machine + worker utils)
+        run: pytest services/orchestrator/tests -v
+
   build:
     runs-on: ubuntu-latest
-    needs: [test-api, test-json-schemas, test-pydantic-schemas]
+    needs: [test-api, test-orchestrator, test-json-schemas, test-pydantic-schemas]
     steps:
       - uses: actions/checkout@v4
       - name: Build API image

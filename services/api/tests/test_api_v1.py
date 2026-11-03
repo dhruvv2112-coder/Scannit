@@ -194,6 +194,102 @@ class TestJobs:
         assert resp.json()["config"] == config
 
 
+# --- Job Submission & Lifecycle ---
+
+
+class TestJobLifecycle:
+    def _create_job(self) -> tuple[str, str, str]:
+        pid = client.post("/api/v1/projects", json={"name": "P"}).json()["id"]
+        did = client.post(
+            f"/api/v1/projects/{pid}/datasets",
+            json={"project_id": pid, "name": "D"},
+        ).json()["id"]
+        jid = client.post(
+            "/api/v1/jobs",
+            json={"project_id": pid, "dataset_id": did},
+        ).json()["id"]
+        return pid, did, jid
+
+    def test_submit_job(self):
+        _pid, _did, jid = self._create_job()
+        resp = client.post(f"/api/v1/jobs/{jid}/submit")
+        assert resp.status_code == 202
+        data = resp.json()
+        # Without Celery installed, status still advances to VALIDATING
+        assert data["status"] == "VALIDATING"
+
+    def test_submit_job_not_found(self):
+        fake_id = str(uuid.uuid4())
+        resp = client.post(f"/api/v1/jobs/{fake_id}/submit")
+        assert resp.status_code == 404
+
+    def test_submit_job_already_running(self):
+        _pid, _did, jid = self._create_job()
+        client.post(f"/api/v1/jobs/{jid}/submit")
+        # Second submit should be rejected
+        resp = client.post(f"/api/v1/jobs/{jid}/submit")
+        assert resp.status_code == 409
+
+    def test_cancel_job(self):
+        _pid, _did, jid = self._create_job()
+        client.post(f"/api/v1/jobs/{jid}/submit")
+        resp = client.patch(f"/api/v1/jobs/{jid}/cancel")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "CANCELLED"
+
+    def test_cancel_completed_job_rejected(self):
+        _pid, _did, jid = self._create_job()
+        # Manually set to COMPLETE via status update
+        client.post(f"/api/v1/jobs/{jid}/submit")
+        client.patch(
+            f"/api/v1/jobs/{jid}/status",
+            json={"status": "COMPLETE", "progress_pct": 100.0},
+        )
+        resp = client.patch(f"/api/v1/jobs/{jid}/cancel")
+        assert resp.status_code == 409
+
+    def test_status_update(self):
+        _pid, _did, jid = self._create_job()
+        client.post(f"/api/v1/jobs/{jid}/submit")
+        resp = client.patch(
+            f"/api/v1/jobs/{jid}/status",
+            json={"status": "POSE_ESTIMATION", "progress_pct": 27.0},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "POSE_ESTIMATION"
+        assert data["progress_pct"] == 27.0
+
+    def test_status_update_invalid_status(self):
+        _pid, _did, jid = self._create_job()
+        resp = client.patch(
+            f"/api/v1/jobs/{jid}/status",
+            json={"status": "INVALID_STATE", "progress_pct": 0},
+        )
+        assert resp.status_code == 422
+
+    def test_status_update_with_error(self):
+        _pid, _did, jid = self._create_job()
+        resp = client.patch(
+            f"/api/v1/jobs/{jid}/status",
+            json={"status": "FAILED", "progress_pct": 27.0, "error_message": "OOM during dense MVS"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "FAILED"
+        assert data["error_message"] == "OOM during dense MVS"
+
+    def test_complete_sets_completed_at(self):
+        _pid, _did, jid = self._create_job()
+        client.post(f"/api/v1/jobs/{jid}/submit")
+        resp = client.patch(
+            f"/api/v1/jobs/{jid}/status",
+            json={"status": "COMPLETE", "progress_pct": 100.0},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["completed_at"] is not None
+
+
 # --- CORS ---
 
 
