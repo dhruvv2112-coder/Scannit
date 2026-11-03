@@ -29,7 +29,7 @@ import logging
 import os
 import subprocess
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -37,10 +37,9 @@ from app.celery_app import celery
 from app.state.machine import (
     InvalidTransition,
     compute_progress,
-    next_stage,
     validate_transition,
 )
-from scannit_schemas.enums import JobStatus, PIPELINE_STAGES
+from scannit_schemas.enums import PIPELINE_STAGES, JobStatus
 
 logger = logging.getLogger(__name__)
 
@@ -159,7 +158,7 @@ class JobCallbacks:
             "status": status.value,
             "progress_pct": progress_pct,
             "error_message": error_message,
-            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(UTC).isoformat(),
         }
         # TODO: POST to {api_base_url}/api/v1/jobs/{job_id}/status
         # when the API status-update endpoint is ready

@@ -16,10 +16,10 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
-from scannit_schemas.enums import JobStatus
-from scannit_schemas.models import JobCreate
 
 from app.core.storage import store
+from scannit_schemas.enums import JobStatus
+from scannit_schemas.models import JobCreate
 
 router = APIRouter(prefix="/api/v1", tags=["jobs"])
 
@@ -153,11 +153,11 @@ async def update_job_status(job_id: uuid.UUID, body: JobStatusUpdate) -> dict:
     # Validate the status string
     try:
         new_status = JobStatus(body.status)
-    except ValueError:
+    except ValueError as err:
         raise HTTPException(
             status_code=422,
             detail=f"Invalid status: {body.status}",
-        )
+        ) from err
 
     updates: dict[str, Any] = {
         "status": new_status,
@@ -166,9 +166,9 @@ async def update_job_status(job_id: uuid.UUID, body: JobStatusUpdate) -> dict:
     if body.error_message is not None:
         updates["error_message"] = body.error_message
     if new_status == JobStatus.COMPLETE:
-        from datetime import datetime, timezone
+        from datetime import UTC, datetime
 
-        updates["completed_at"] = datetime.now(timezone.utc).isoformat()
+        updates["completed_at"] = datetime.now(UTC).isoformat()
 
     store.update_job(job_id, **updates)
     return _serialize(store.get_job(job_id))  # type: ignore[arg-type]

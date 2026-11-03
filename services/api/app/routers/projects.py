@@ -5,12 +5,12 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, HTTPException, status
+
+from app.core.storage import store
 from scannit_schemas.models import (
     DatasetCreate,
     ProjectCreate,
 )
-
-from app.core.storage import store
 
 router = APIRouter(prefix="/api/v1", tags=["projects"])
 

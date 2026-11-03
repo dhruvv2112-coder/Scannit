@@ -9,7 +9,7 @@ from app.state.machine import (
     next_stage,
     validate_transition,
 )
-from scannit_schemas.enums import JobStatus, PIPELINE_STAGES
+from scannit_schemas.enums import PIPELINE_STAGES, JobStatus
 
 
 class TestValidTransitions:

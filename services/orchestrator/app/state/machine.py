@@ -12,7 +12,7 @@ Special transitions:
 
 from __future__ import annotations
 
-from scannit_schemas.enums import JobStatus, PIPELINE_STAGES
+from scannit_schemas.enums import PIPELINE_STAGES, JobStatus
 
 # Percentage weight for each pipeline stage (sums to 100)
 STAGE_WEIGHTS: dict[JobStatus, float] = {
@@ -85,10 +85,7 @@ def is_valid_transition(current: JobStatus, target: JobStatus) -> bool:
     # Normal forward progression: next sequential stage
     curr_idx = _stage_index(current)
     tgt_idx = _stage_index(target)
-    if curr_idx >= 0 and tgt_idx == curr_idx + 1:
-        return True
-
-    return False
+    return curr_idx >= 0 and tgt_idx == curr_idx + 1
 
 
 def validate_transition(current: JobStatus, target: JobStatus) -> None:

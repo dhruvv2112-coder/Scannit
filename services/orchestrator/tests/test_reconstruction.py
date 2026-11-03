@@ -4,11 +4,8 @@ These tests import only the utility functions, avoiding the Celery dependency
 so they can run in environments where Celery is not installed.
 """
 
-import importlib
 import sys
 from unittest.mock import MagicMock
-
-import pytest
 
 from scannit_schemas.enums import JobStatus
 
