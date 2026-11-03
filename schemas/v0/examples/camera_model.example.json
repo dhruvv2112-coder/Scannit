@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "camera_id": "cam-0",
+  "model": "OPENCV",
+  "width_px": 1920,
+  "height_px": 1080,
+  "params": [
+    1500,
+    1500,
+    960,
+    540,
+    0.01,
+    -0.002,
+    0,
+    0
+  ],
+  "source": "exif_prior",
+  "make": "ExampleCo",
+  "model_name": "X1",
+  "focal_length_mm": 4.2
+}

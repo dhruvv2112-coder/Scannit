@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/ingest_manifest.schema.json",
+  "title": "IngestManifest",
+  "description": "Output of the ingest stage (REC-001). Deterministic: identical inputs and options produce a byte-identical manifest (no wall-clock fields).",
+  "type": "object",
+  "required": ["schema_version", "options", "sources", "frames", "summary"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "options": { "type": "object" },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_id", "name", "kind", "bytes", "checksum", "status"],
+        "properties": {
+          "source_id": { "$ref": "common.schema.json#/$defs/Id" },
+          "name": { "type": "string", "maxLength": 255 },
+          "kind": { "enum": ["image", "video"] },
+          "bytes": { "type": "integer", "minimum": 0 },
+          "checksum": { "$ref": "common.schema.json#/$defs/Checksum" },
+          "status": { "enum": ["accepted", "rejected"] },
+          "reject_reason": { "type": "string" },
+          "video": {
+            "type": "object",
+            "properties": {
+              "codec": { "type": "string" }, "width_px": { "type": "integer" }, "height_px": { "type": "integer" },
+              "fps": { "type": "number" }, "duration_s": { "type": "number" }, "rotation_deg": { "type": "integer" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "frames": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["frame_id", "source_id", "file", "width_px", "height_px", "checksum", "sharpness", "dhash", "status"],
+        "properties": {
+          "frame_id": { "$ref": "common.schema.json#/$defs/Id" },
+          "source_id": { "$ref": "common.schema.json#/$defs/Id" },
+          "file": { "type": "string" },
+          "timestamp_s": { "type": ["number", "null"] },
+          "width_px": { "type": "integer", "minimum": 1 },
+          "height_px": { "type": "integer", "minimum": 1 },
+          "checksum": { "$ref": "common.schema.json#/$defs/Checksum" },
+          "sharpness": { "type": "number", "minimum": 0 },
+          "dhash": { "type": "string", "pattern": "^[0-9a-f]{16}$" },
+          "status": { "enum": ["kept", "rejected_blur", "rejected_duplicate"] },
+          "duplicate_of": { "$ref": "common.schema.json#/$defs/Id" },
+          "exif": {
+            "type": "object",
+            "properties": {
+              "make": { "type": "string" }, "model": { "type": "string" },
+              "focal_length_mm": { "type": "number" }, "focal_length_35mm_equiv_mm": { "type": "number" },
+              "orientation": { "type": "integer" }, "datetime_original": { "type": "string" },
+              "gps": { "type": "object" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["frames_total", "frames_kept", "rejected_blur", "rejected_duplicate"],
+      "properties": {
+        "frames_total": { "type": "integer", "minimum": 0 },
+        "frames_kept": { "type": "integer", "minimum": 0 },
+        "rejected_blur": { "type": "integer", "minimum": 0 },
+        "rejected_duplicate": { "type": "integer", "minimum": 0 },
+        "sources_rejected": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

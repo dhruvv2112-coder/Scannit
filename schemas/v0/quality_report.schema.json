@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/quality_report.schema.json",
+  "title": "QualityReport",
+  "description": "Measured quality of one job. Every number is measured, never assumed; null means not measured.",
+  "type": "object",
+  "required": ["schema_version", "job_id", "generated_at", "images_total", "images_registered", "registered_fraction", "scale_status", "environment"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "job_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "generated_at": { "$ref": "common.schema.json#/$defs/Timestamp" },
+    "images_total": { "type": "integer", "minimum": 0 },
+    "images_rejected_blur": { "type": "integer", "minimum": 0 },
+    "images_rejected_duplicate": { "type": "integer", "minimum": 0 },
+    "images_registered": { "type": "integer", "minimum": 0 },
+    "registered_fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+    "reprojection_error_px": {
+      "type": ["object", "null"],
+      "properties": { "mean": { "type": "number", "minimum": 0 }, "median": { "type": "number", "minimum": 0 }, "p95": { "type": "number", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "sparse_points": { "type": ["integer", "null"], "minimum": 0 },
+    "scale_status": { "$ref": "common.schema.json#/$defs/ScaleStatus" },
+    "control_residuals_mm": {
+      "type": ["object", "null"],
+      "properties": { "count": { "type": "integer", "minimum": 0 }, "rms": { "type": "number", "minimum": 0 }, "max": { "type": "number", "minimum": 0 } },
+      "additionalProperties": false
+    },
+    "checkpoint_errors_mm": {
+      "description": "Independent checkpoints not used for scaling.",
+      "type": ["object", "null"],
+      "properties": {
+        "count": { "type": "integer", "minimum": 0 },
+        "p50": { "type": "number", "minimum": 0 },
+        "p95": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 },
+        "tolerance_mm": { "type": "number", "minimum": 0 },
+        "pass": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "dense_point_density_per_m2": { "type": ["number", "null"], "minimum": 0 },
+    "texture_coverage_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "unreconstructed_area_fraction": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "stage_timings_s": { "type": "object", "additionalProperties": { "type": "number", "minimum": 0 } },
+    "peak_memory_mb": { "type": ["number", "null"], "minimum": 0 },
+    "environment": {
+      "type": "object",
+      "required": ["os", "python"],
+      "properties": {
+        "os": { "type": "string" }, "python": { "type": "string" }, "cpu": { "type": "string" }, "gpu": { "type": "string" },
+        "tools": { "type": "object", "additionalProperties": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "notes": { "type": "array", "items": { "type": "string", "maxLength": 1000 } }
+  },
+  "additionalProperties": false
+}
