@@ -19,6 +19,14 @@ class Settings(BaseSettings):
     s3_secret_key: str = "minioadmin"
     s3_bucket: str = "scannit-artifacts"
 
+    # CORS — allow local Vite viewer dev server and configurable origins
+    cors_origins: list[str] = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+    ]
+
     model_config = {"env_prefix": "SCANNIT_"}
 
 
