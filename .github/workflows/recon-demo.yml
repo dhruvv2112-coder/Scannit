@@ -1,0 +1,36 @@
+# account1: builds the first (synthetic, clearly flagged) GLB + run report and attaches them to the run.
+name: recon-demo
+on:
+  pull_request:
+    paths: ["pipelines/**", "packages/reconstruction-core/**", "tests/reconstruction/**", ".github/workflows/recon-demo.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  first-glb:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: packages/reconstruction-core/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - run: pip install -r requirements-dev.txt -r packages/reconstruction-core/requirements.txt
+      - name: Synthetic end-to-end run
+        env:
+          RECON_DEMO_OUT: ${{ github.workspace }}/demo_out
+        run: python -m pytest -q tests/reconstruction/test_run_glb.py -k end_to_end
+      - uses: actions/upload-artifact@v4
+        with:
+          name: first-glb-synthetic
+          path: |
+            demo_out/model.glb
+            demo_out/artifact_manifest.json
+            demo_out/run_report.json
+            demo_out/ingest/manifest.json
+            demo_out/sparse/sparse.json
+          if-no-files-found: error
+          retention-days: 30

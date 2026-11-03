@@ -14,7 +14,7 @@ RECON_WORK ?= work/recon
 RECON_FIXTURE := $(RECON_WORK)/fixture
 RECON_SMOKE := $(RECON_WORK)/smoke
 
-.PHONY: recon-fixture recon-test recon-smoke recon-report
+.PHONY: recon-fixture recon-test recon-smoke recon-report recon-run
 recon-fixture:
 	rm -rf $(RECON_FIXTURE)
 	$(PY) tests/reconstruction/make_fixture.py $(RECON_FIXTURE)
@@ -29,5 +29,9 @@ recon-smoke: recon-fixture
 recon-report:
 	@test -s $(RECON_SMOKE)/manifest.json || (echo "run 'make recon-smoke' first" && exit 1)
 	PYTHONPATH=$(RECON_PATH) $(PY) -m recon_core.report $(RECON_SMOKE)/manifest.json --job-id smoke --out $(RECON_SMOKE)/quality_report.json
+
+# make recon-run INPUT=path/to/images OUTPUT=work/recon/run [ARGS=--synthetic]
+recon-run:
+	PYTHONPATH=$(RECON_PATH) $(PY) -m photogrammetry.run --input $(INPUT) --output $(or $(OUTPUT),$(RECON_WORK)/run) $(ARGS)
 
 ci: schemas-test recon-test recon-smoke recon-report
