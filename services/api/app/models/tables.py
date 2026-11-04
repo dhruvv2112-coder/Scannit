@@ -4,8 +4,6 @@ Maps 1:1 to the Pydantic models in ``scannit_schemas.models`` and to the
 JSON Schemas under ``schemas/v0/``.
 """
 
-from __future__ import annotations
-
 import uuid
 from typing import Any
 
