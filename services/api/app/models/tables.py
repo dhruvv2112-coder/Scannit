@@ -5,6 +5,7 @@ JSON Schemas under ``schemas/v0/``.
 """
 
 import uuid
+from datetime import datetime
 from typing import Any
 
 from sqlalchemy import DateTime, Float, ForeignKey, Integer, String, Text
@@ -23,8 +24,8 @@ class ProjectRow(Base):
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     description: Mapped[str] = mapped_column(Text, default="")
     location_wkt: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped = created_at_col()
-    updated_at: Mapped = updated_at_col()
+    created_at: Mapped[datetime] = created_at_col()
+    updated_at: Mapped[datetime] = updated_at_col()
 
     # Relationships
     datasets: Mapped[list["DatasetRow"]] = relationship(back_populates="project", lazy="selectin")
@@ -42,7 +43,7 @@ class DatasetRow(Base):
     upload_status: Mapped[str] = mapped_column(String(32), default="pending")
     file_count: Mapped[int] = mapped_column(Integer, default=0)
     total_bytes: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped = created_at_col()
+    created_at: Mapped[datetime] = created_at_col()
 
     # Relationships
     project: Mapped["ProjectRow"] = relationship(back_populates="datasets")
@@ -68,9 +69,9 @@ class JobRow(Base):
     transform_bounds: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
     source_evidence: Mapped[dict[str, Any] | None] = mapped_column(JSONB, nullable=True)
 
-    created_at: Mapped = created_at_col()
-    updated_at: Mapped = updated_at_col()
-    completed_at: Mapped = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = created_at_col()
+    updated_at: Mapped[datetime] = updated_at_col()
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     project: Mapped["ProjectRow"] = relationship(back_populates="jobs")
@@ -93,7 +94,7 @@ class ArtifactRow(Base):
     fidelity_warnings: Mapped[list[str]] = mapped_column(JSONB, default=list)
     s3_key: Mapped[str] = mapped_column(Text, nullable=False)
     byte_size: Mapped[int] = mapped_column(Integer, default=0)
-    created_at: Mapped = created_at_col()
+    created_at: Mapped[datetime] = created_at_col()
 
     # Relationships
     job: Mapped["JobRow"] = relationship(back_populates="artifacts")
