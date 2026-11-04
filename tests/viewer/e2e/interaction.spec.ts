@@ -30,9 +30,15 @@ test('walk: teleport onto the ground, then walking into the shed is blocked', as
   expect(start[2]).toBeCloseTo(1.5, 0);
 
   await page.keyboard.down('w');
-  await page.waitForTimeout(7000);
+  const trace: string[] = [];
+  for (let i = 0; i < 14; i++) {
+    await page.waitForTimeout(500);
+    const v = (await viewer(page))!;
+    trace.push(`${(i + 1) * 0.5}s cam=${(await cam(page)).map((x) => x.toFixed(2)).join(',')} fps=${v.stats.fps} nav=${v.nav}`);
+  }
   await page.keyboard.up('w');
   const end = await cam(page);
+  console.log(`walk trace (start ${start.map((x) => x.toFixed(2)).join(',')}):\n  ${trace.join('\n  ')}`);
   const moved = Math.hypot(end[0] - start[0], end[2] - start[2]);
   expect(moved).toBeGreaterThan(2);                                   // it walked
   const insideShed = end[0] > 3 && end[0] < 15 && end[2] > -7 && end[2] < -1;
