@@ -10,8 +10,8 @@ JSON Schema 2020-12, versioned by directory (`v0/` = pre-freeze, may change by P
 | `mesh_artifact`, `texture_artifact`, `spatial_tile` | account1 | account3 export/viewer |
 | `quality_report` | account1 | gateway, UI |
 
-Conventions are in [`docs/project_plan/architecture.md`](../docs/project_plan/architecture.md#coordinate-conventions-binding-once-schemasv0-merges): meters, right-handed Z-up scene frame, OpenCV camera frame, `p_to = s·R·p_from + t`, explicit `scale_status`.
+Conventions: meters, right-handed Z-up scene frame, OpenCV camera frame, `p_to = s·R·p_from + t`, explicit `scale_status`.
 
 The `$id` host `schemas.scannit.invalid` is a deliberately unresolvable placeholder; schemas are resolved locally by `$id`.
 
-Run `make schemas-test` to validate every schema and its example in `v0/examples/`.
+Validated by `tests/schemas` (account2, PR #3).

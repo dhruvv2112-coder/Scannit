@@ -1,4 +1,5 @@
 """Upload limits and file-type sniffing. Extensions are never trusted alone."""
+
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass

@@ -1,4 +1,5 @@
 """REC-001 acceptance: deterministic frame manifest; dedupe/blur/security fixture tests."""
+
 import json
 import os
 from pathlib import Path
@@ -6,13 +7,12 @@ from pathlib import Path
 import cv2
 import numpy as np
 import pytest
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-
 from ingest.__main__ import main as cli
 from ingest.core import IngestOptions, NoUsableFrames, run
+from jsonschema import Draft202012Validator
 from recon_core.hashing import dhash, min_hamming
 from recon_core.limits import Limits, RejectedInput, classify
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -111,6 +111,7 @@ def test_fake_jpeg_rejected(ingested):
 
 # --- security / limits -------------------------------------------------------
 
+
 def test_symlink_rejected(fixture_dir, tmp_path):
     link = tmp_path / "link.jpg"
     os.symlink(fixture_dir / "a_sharp.jpg", link)
@@ -125,8 +126,11 @@ def test_size_limit(fixture_dir):
 
 def test_pixel_limit_rejects_decompression_bomb(fixture_dir, tmp_path):
     with pytest.raises(NoUsableFrames):
-        run([fixture_dir / "c_distinct.png", fixture_dir / "a_sharp.jpg"], tmp_path,
-            IngestOptions(limits=Limits(max_image_pixels=1000)))  # every image is "too big"
+        run(
+            [fixture_dir / "c_distinct.png", fixture_dir / "a_sharp.jpg"],
+            tmp_path,
+            IngestOptions(limits=Limits(max_image_pixels=1000)),
+        )  # every image is "too big"
     m = json.loads((tmp_path / "manifest.json").read_text())  # manifest still written for diagnosis
     assert [s["status"] for s in m["sources"]] == ["rejected", "rejected"]
     assert all("pixel" in s["reject_reason"] for s in m["sources"])
@@ -148,6 +152,7 @@ def test_option_validation():
 
 # --- primitives --------------------------------------------------------------
 
+
 def test_dhash_hamming():
     rng = np.random.default_rng(0)
     img = (rng.random((64, 64)) * 255).astype(np.uint8)
@@ -159,6 +164,7 @@ def test_dhash_hamming():
 
 
 # --- CLI ---------------------------------------------------------------------
+
 
 def test_cli_exit_codes(fixture_dir, tmp_path, capsys):
     assert cli([str(fixture_dir / "c_distinct.png"), "--out", str(tmp_path / "ok")]) == 0

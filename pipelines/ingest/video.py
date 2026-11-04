@@ -1,4 +1,5 @@
 """Thin, bounded wrappers around ffprobe/ffmpeg."""
+
 from __future__ import annotations
 
 import json
@@ -72,7 +73,9 @@ def probe(path: Path, limits: Limits) -> dict:
     }
 
 
-def extract_frames(path: Path, out_dir: Path, interval_s: float, max_frames: int, timeout_s: float = 3600) -> list[Path]:
+def extract_frames(
+    path: Path, out_dir: Path, interval_s: float, max_frames: int, timeout_s: float = 3600
+) -> list[Path]:
     """Extract one frame every `interval_s` seconds (rotation applied by ffmpeg) as bit-exact JPEGs."""
     if max_frames <= 0:
         return []
@@ -80,12 +83,28 @@ def extract_frames(path: Path, out_dir: Path, interval_s: float, max_frames: int
     pattern = out_dir / "%06d.jpg"
     proc = _run(
         [
-            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
-            "-i", str(path),
-            "-vf", f"fps=1/{interval_s}",
-            "-frames:v", str(max_frames),
-            "-q:v", "2", "-threads", "1",
-            "-map_metadata", "-1", "-fflags", "+bitexact", "-flags:v", "+bitexact",
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            "error",
+            "-y",
+            "-i",
+            str(path),
+            "-vf",
+            f"fps=1/{interval_s}",
+            "-frames:v",
+            str(max_frames),
+            "-q:v",
+            "2",
+            "-threads",
+            "1",
+            "-map_metadata",
+            "-1",
+            "-fflags",
+            "+bitexact",
+            "-flags:v",
+            "+bitexact",
             str(pattern),
         ],
         timeout=timeout_s,

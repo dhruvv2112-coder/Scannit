@@ -1,0 +1,25 @@
+# account1-owned: reconstruction tests only. The shared ci.yml is account2's (PR #3).
+name: recon
+on:
+  pull_request:
+    paths: ["schemas/**", "pipelines/**", "packages/reconstruction-core/**", "tests/reconstruction/**", "Makefile", "requirements-dev.txt", ".github/workflows/recon.yml"]
+  push:
+    branches: [main]
+    paths: ["schemas/**", "pipelines/**", "packages/reconstruction-core/**", "tests/reconstruction/**", "Makefile", "requirements-dev.txt", ".github/workflows/recon.yml"]
+permissions:
+  contents: read
+jobs:
+  recon:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - name: Python deps
+        run: |
+          pip install -r requirements-dev.txt
+          if [ -f packages/reconstruction-core/requirements.txt ]; then pip install -r packages/reconstruction-core/requirements.txt; fi
+      - run: make recon-ci

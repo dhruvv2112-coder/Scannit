@@ -4,6 +4,7 @@ Determinism: sources are processed in (name, sha256) order, frame ids are assign
 and the manifest has no wall-clock fields and is serialised with sorted keys. Identical inputs,
 options and tool versions give a byte-identical manifest and identical frame files.
 """
+
 from __future__ import annotations
 
 import json
@@ -15,7 +16,6 @@ from pathlib import Path
 import cv2
 import numpy as np
 from PIL import ExifTags, Image, ImageOps
-
 from recon_core import SCHEMA_VERSION
 from recon_core.hashing import dhash, min_hamming, sha256_file
 from recon_core.limits import Limits, RejectedInput, classify
@@ -105,7 +105,11 @@ def _analyse(path: Path) -> tuple[int, int, float, int]:
         raise RejectedInput("image could not be decoded")
     h, w = gray.shape
     scale = ANALYSIS_LONG_SIDE / max(h, w)
-    small = cv2.resize(gray, (max(1, round(w * scale)), max(1, round(h * scale))), interpolation=cv2.INTER_AREA) if scale < 1 else gray
+    small = (
+        cv2.resize(gray, (max(1, round(w * scale)), max(1, round(h * scale))), interpolation=cv2.INTER_AREA)
+        if scale < 1
+        else gray
+    )
     sharpness = float(cv2.Laplacian(small, cv2.CV_64F).var())
     return w, h, round(sharpness, 4), dhash(small)
 
@@ -131,8 +135,9 @@ def _stage_still(src: Path, dst_stem: Path, limits: Limits) -> tuple[Path, dict]
     return dst, exif
 
 
-def run(inputs: list[Path], out_dir: Path, opts: IngestOptions = IngestOptions()) -> dict:
+def run(inputs: list[Path], out_dir: Path, opts: IngestOptions | None = None) -> dict:
     """Run ingest and write `out_dir/manifest.json`. Returns the manifest dict."""
+    opts = opts or IngestOptions()
     if len(inputs) > opts.limits.max_sources:
         raise RejectedInput(f"{len(inputs)} sources; limit is {opts.limits.max_sources}")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -173,10 +178,16 @@ def run(inputs: list[Path], out_dir: Path, opts: IngestOptions = IngestOptions()
         else:
             counts[status] += 1
         rec = {
-            "frame_id": fid, "source_id": source_id, "file": final.relative_to(out_dir).as_posix(),
-            "timestamp_s": ts, "width_px": w, "height_px": h,
+            "frame_id": fid,
+            "source_id": source_id,
+            "file": final.relative_to(out_dir).as_posix(),
+            "timestamp_s": ts,
+            "width_px": w,
+            "height_px": h,
             "checksum": {"algorithm": "sha256", "value": sha256_file(final)},
-            "sharpness": sharp, "dhash": f"{dh:016x}", "status": status,
+            "sharpness": sharp,
+            "dhash": f"{dh:016x}",
+            "status": status,
         }
         if dup:
             rec["duplicate_of"] = dup
@@ -186,8 +197,14 @@ def run(inputs: list[Path], out_dir: Path, opts: IngestOptions = IngestOptions()
 
     for i, (name, digest, path) in enumerate(keyed):
         sid = f"src-{i:04d}"
-        src = {"source_id": sid, "name": name[:255], "kind": "image", "bytes": 0,
-               "checksum": {"algorithm": "sha256", "value": digest}, "status": "accepted"}
+        src = {
+            "source_id": sid,
+            "name": name[:255],
+            "kind": "image",
+            "bytes": 0,
+            "checksum": {"algorithm": "sha256", "value": digest},
+            "status": "accepted",
+        }
         sources.append(src)
         try:
             kind = classify(path, opts.limits)
@@ -215,16 +232,21 @@ def run(inputs: list[Path], out_dir: Path, opts: IngestOptions = IngestOptions()
     manifest = {
         "schema_version": SCHEMA_VERSION,
         "options": {
-            "frame_interval_s": opts.frame_interval_s, "max_frames": opts.max_frames,
-            "blur_threshold": opts.blur_threshold, "dedupe_max_hamming": opts.dedupe_max_hamming,
-            "analysis_long_side_px": ANALYSIS_LONG_SIDE, "limits": opts.limits.to_dict(),
+            "frame_interval_s": opts.frame_interval_s,
+            "max_frames": opts.max_frames,
+            "blur_threshold": opts.blur_threshold,
+            "dedupe_max_hamming": opts.dedupe_max_hamming,
+            "analysis_long_side_px": ANALYSIS_LONG_SIDE,
+            "limits": opts.limits.to_dict(),
             "tools": {"ffmpeg": video.tool_version("ffmpeg"), "opencv": cv2.__version__},
         },
         "sources": sources,
         "frames": frames,
         "summary": {
-            "frames_total": len(frames), "frames_kept": kept,
-            "rejected_blur": counts["rejected_blur"], "rejected_duplicate": counts["rejected_duplicate"],
+            "frames_total": len(frames),
+            "frames_kept": kept,
+            "rejected_blur": counts["rejected_blur"],
+            "rejected_duplicate": counts["rejected_duplicate"],
             "sources_rejected": sum(1 for s in sources if s["status"] == "rejected"),
         },
     }

@@ -7,6 +7,7 @@ errors against known distances.
 
 Usage: python tests/reconstruction/synthetic_scene.py OUT_DIR [N_VIEWS]
 """
+
 from __future__ import annotations
 
 import json
@@ -69,7 +70,7 @@ def render(out: Path, n_views: int = 12) -> Path:
     for idx, (R, c) in enumerate(camera_poses(n_views)):
         t = -R @ c
         canvas = np.full((H, W, 3), 40, np.uint8)
-        for (name, o, u, v, (su, sv)), tex in zip(PLANES, textures):
+        for (name, o, u, v, (su, sv)), tex in zip(PLANES, textures, strict=True):
             o, u, v = (np.array(a, np.float64) for a in (o, u, v))
             corners = [o, o + su * u, o + su * u + sv * v, o + sv * v]
             if any((R @ p + t)[2] <= 0.1 for p in corners):
@@ -84,7 +85,8 @@ def render(out: Path, n_views: int = 12) -> Path:
         cv2.imwrite(str(img_dir / name), canvas)
         gt_cams.append({"image": name, "R_cam_from_world": R.tolist(), "center_m": c.tolist()})
     gt = {
-        "units": "m", "frame": "Z-up world, room corner at origin",
+        "units": "m",
+        "frame": "Z-up world, room corner at origin",
         "intrinsics": {"model": "PINHOLE", "width_px": W, "height_px": H, "params": [FX, FY, CX, CY]},
         "planes": [{"name": n, "origin": o, "u": u, "v": v, "size_m": s} for n, o, u, v, s in PLANES],
         "cameras": gt_cams,

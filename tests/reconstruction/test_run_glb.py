@@ -1,11 +1,11 @@
 """First-GLB path: GLB writer, Z-up -> Y-up transform, run report honesty, manifest integrity."""
+
 import importlib.util
 import json
 from pathlib import Path
 
 import numpy as np
 import pytest
-
 from photogrammetry import glb
 from photogrammetry.run import StageError, run, verify_manifest
 
@@ -41,7 +41,9 @@ def test_corrupted_output_detected(tmp_path):
     glb.write_glb(tmp_path / "model.glb", np.random.default_rng(0).random((50, 3)))
     from photogrammetry.run import sha256
 
-    (tmp_path / "artifact_manifest.json").write_text(json.dumps({"uri": "model.glb", "sha256": sha256(tmp_path / "model.glb")}))
+    (tmp_path / "artifact_manifest.json").write_text(
+        json.dumps({"uri": "model.glb", "sha256": sha256(tmp_path / "model.glb")})
+    )
     assert verify_manifest(tmp_path) == []
     data = bytearray((tmp_path / "model.glb").read_bytes())
     data[-5] ^= 0xFF
@@ -76,12 +78,22 @@ def test_synthetic_end_to_end_first_glb(tmp_path):
 
     images = synthetic_scene.render(tmp_path / "scene", 12)
     out = Path(os.environ.get("RECON_DEMO_OUT", tmp_path / "out"))
-    rep = run(images, out, synthetic=True, force=True, sparse_opts=SparseOptions(camera_model="PINHOLE", timeout_s=1200))
+    rep = run(
+        images, out, synthetic=True, force=True, sparse_opts=SparseOptions(camera_model="PINHOLE", timeout_s=1200)
+    )
     assert rep["status"] == "succeeded_with_fallback"
     m = json.loads((out / "artifact_manifest.json").read_text())
     assert verify_manifest(out) == []
-    assert m["synthetic"] is True and m["scale_status"] == "arbitrary" and m["mesh_acceptance"] == "not_met"
+    assert m["synthetic"] is True and m["artifact_origin"] == "synthetic_fixture"
+    assert m["scale_status"] == "arbitrary" and m["mesh_acceptance"] == "not_met"
     assert m["mime_type"] == "model/gltf-binary" and m["unit"] == "m"
-    assert [s["status"] for s in rep["stages"]] == ["succeeded", "succeeded", "succeeded", "unavailable", "unavailable", "succeeded"]
+    assert [s["status"] for s in rep["stages"]] == [
+        "succeeded",
+        "succeeded",
+        "succeeded",
+        "unavailable",
+        "unavailable",
+        "succeeded",
+    ]
     rep2 = run(images, out, synthetic=True)  # idempotent: nothing recomputed
     assert all(s.get("skipped_cached") for s in rep2["stages"])
