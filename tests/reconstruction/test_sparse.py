@@ -1,4 +1,5 @@
 """REC-002: COLMAP wrapper. Unit tests run everywhere; the reconstruction test needs pycolmap (CI)."""
+
 import importlib.util
 import json
 from pathlib import Path
@@ -6,9 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-
 from photogrammetry.sparse import SparseFailed, SparseOptions, classify_result, rotmat_to_wxyz, run_sparse, write_ply
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[2]
 HAS_PYCOLMAP = importlib.util.find_spec("pycolmap") is not None
@@ -20,18 +20,22 @@ def _validator(title):
     return Draft202012Validator(next(s for s in schemas if s["title"] == title), registry=reg)
 
 
-@pytest.mark.parametrize("axis,angle", [((0, 0, 1), 0.3), ((1, 0, 0), 2.9), ((0.3, -0.5, 0.8), 3.1), ((0, 1, 0), np.pi)])
+@pytest.mark.parametrize(
+    "axis,angle", [((0, 0, 1), 0.3), ((1, 0, 0), 2.9), ((0.3, -0.5, 0.8), 3.1), ((0, 1, 0), np.pi)]
+)
 def test_rotmat_to_quaternion_roundtrip(axis, angle):
     import cv2
 
     a = np.asarray(axis, float) / np.linalg.norm(axis) * angle
     R, _ = cv2.Rodrigues(a)
     w, x, y, z = rotmat_to_wxyz(R)
-    R2 = np.array([
-        [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-        [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-        [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
-    ])
+    R2 = np.array(
+        [
+            [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+        ]
+    )
     assert np.allclose(R, R2, atol=1e-9) and w >= 0
 
 
@@ -107,9 +111,13 @@ def test_reconstructs_synthetic_scene_reproducibly(scene, tmp_path):
 
     def to_R(q):
         w, x, y, z = q
-        return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
-                         [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
-                         [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+        return np.array(
+            [
+                [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+            ]
+        )
 
     def relative(path):
         qs = {p["image"]: to_R(p["cam_from_world"]["rotation_wxyz"]) for p in json.loads(path.read_text())}

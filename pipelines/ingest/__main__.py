@@ -2,6 +2,7 @@
 
 Exit codes: 0 ok, 2 invalid arguments/options, 3 no usable frames, 4 external tool failure.
 """
+
 from __future__ import annotations
 
 import argparse
