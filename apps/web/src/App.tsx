@@ -194,7 +194,11 @@ function CameraRig({ controls, frameKey, box, viewDir, onProject, nav, reducedMo
     if (nav === 'orbit' || !c) return;
     const k = keys.current; if (!k.size) return;
     const boost = k.has('shift') && !reducedMotion ? 3 : 1;
-    const step = Math.min(dt, 0.1);
+    // Frame-rate independent: integrate the whole frame time (up to 1 s) in sub-steps of <= 50 ms,
+    // so speed is the same at 5 fps and 120 fps and collision is still checked every few cm.
+    const total = Math.min(dt, 1);
+    const n = Math.max(1, Math.ceil(total / 0.05));
+    const step = total / n;
     const fwd = new Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
     const right = new Vector3().crossVectors(fwd, camera.up).normalize();
     const mv = new Vector3();
@@ -205,21 +209,24 @@ function CameraRig({ controls, frameKey, box, viewDir, onProject, nav, reducedMo
     mv.normalize();
     if (nav === 'fly') {
       const r = box && !box.isEmpty() ? box.getSize(new Vector3()).length() / 2 : 20;
-      mv.multiplyScalar(Math.min(Math.max(r / 8, 1), 60) * (reducedMotion ? 0.5 : 1) * boost * step);
+      mv.multiplyScalar(Math.min(Math.max(r / 8, 1), 60) * (reducedMotion ? 0.5 : 1) * boost * total);
       camera.position.add(mv); c.target.add(mv); c.update();
       return;
     }
     // Walk: 1.4 m/s, blocked by geometry ahead at knee height, follows the surface below.
     const dist = 1.4 * (reducedMotion ? 0.5 : 1) * boost * step;
-    const knee = camera.position.clone(); knee.y -= EYE_M - 0.5;
-    ray.set(knee, mv); ray.far = dist + 0.3;
-    if (ray.intersectObjects(collidables, true).length) return; // collision: stop
-    const next = camera.position.clone().addScaledVector(mv, dist);
-    ray.set(next.clone().add(new Vector3(0, 0.6, 0)), new Vector3(0, -1, 0)); ray.far = EYE_M + 3.6;
-    const ground = ray.intersectObjects(collidables, true)[0];
-    if (ground) next.y = ground.point.y + EYE_M; // steps up to 0.6 m, drops up to 3 m
-    const delta = next.clone().sub(camera.position);
-    camera.position.copy(next); c.target.add(delta); c.update();
+    const start = camera.position.clone();
+    for (let i = 0; i < n; i++) {
+      const knee = camera.position.clone(); knee.y -= EYE_M - 0.5;
+      ray.set(knee, mv); ray.far = dist + 0.3;
+      if (ray.intersectObjects(collidables, true).length) break; // collision: stop
+      const next = camera.position.clone().addScaledVector(mv, dist);
+      ray.set(next.clone().add(new Vector3(0, 0.6, 0)), new Vector3(0, -1, 0)); ray.far = EYE_M + 3.6;
+      const ground = ray.intersectObjects(collidables, true)[0];
+      if (ground) next.y = ground.point.y + EYE_M; // steps up to 0.6 m, drops up to 3 m
+      camera.position.copy(next);
+    }
+    c.target.add(camera.position.clone().sub(start)); c.update();
   });
   return null;
 }
@@ -292,8 +299,19 @@ export default function App() {
   const resets = useRef(0);
   const fileInput = useRef<HTMLInputElement | null>(null);
 
+  // Dispose only AFTER the commit that removed tiles from the scene: disposing while a tile is still
+  // mounted lets the render loop draw it once more, which silently re-uploads (leaks) its buffers.
+  const pendingDispose = useRef<Tile[]>([]);
+  const shownTiles = useRef<Tile[]>([]);
+  useEffect(() => {
+    const now = loaded?.tiles ?? [];
+    pendingDispose.current.push(...shownTiles.current.filter((t) => !now.includes(t)));
+    shownTiles.current = now;
+    const victims = pendingDispose.current.splice(0);
+    victims.forEach((t) => disposeTree(t.root));
+  }, [loaded]);
   const replaceLoaded = useCallback((next: Loaded | null) => {
-    setLoaded((prev) => { if (prev && prev !== next) for (const t of prev.tiles) if (!next?.tiles.includes(t)) disposeTree(t.root); return next; });
+    setLoaded(next);
     setPoints([]); setSelected(null); setInspectInfo(null); setNav('orbit'); setNavMsg(null);
   }, []);
 

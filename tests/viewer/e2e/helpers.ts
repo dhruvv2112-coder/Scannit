@@ -27,3 +27,9 @@ export async function waitReady(page: Page) {
 export async function waitPhase(page: Page, phase: string) {
   await expect.poll(async () => (await viewer(page))?.phase, { timeout: 30_000 }).toBe(phase);
 }
+
+/** Opt-in slow-machine emulation (PW_CPU_THROTTLE=8) to reproduce CI-only timing issues locally. */
+export async function maybeThrottle(page: Page) {
+  const rate = Number(process.env.PW_CPU_THROTTLE ?? 0);
+  if (rate > 1) { const cdp = await page.context().newCDPSession(page); await cdp.send('Emulation.setCPUThrottlingRate', { rate }); }
+}

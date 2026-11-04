@@ -3,7 +3,9 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
-import { viewer, waitReady, watchErrors } from './helpers';
+import { maybeThrottle, viewer, waitReady, watchErrors } from './helpers';
+
+test.beforeEach(async ({ page }) => { await maybeThrottle(page); });
 
 const PUB = resolve(__dirname, '../../../apps/web/public');
 const cam = (page: Page) => page.evaluate(() => window.__viewer!.camera);
