@@ -1,0 +1,17 @@
+##
+# Development overrides — bind-mount source code for hot reload.
+# Auto-loaded by `docker compose up` when present alongside docker-compose.yml.
+# Remove or rename this file for production-like builds.
+##
+
+services:
+  api:
+    volumes:
+      - ./services/api/app:/app/app:ro
+      - ./packages/shared-schemas/scannit_schemas:/usr/local/lib/python3.11/site-packages/scannit_schemas:ro
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  orchestrator:
+    volumes:
+      - ./services/orchestrator/app:/app/app:ro
+      - ./packages/shared-schemas/scannit_schemas:/usr/local/lib/python3.11/site-packages/scannit_schemas:ro

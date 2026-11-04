@@ -1,0 +1,120 @@
+##
+# Scannit Development Stack
+# Usage: docker compose up --build
+# Dev override: docker compose -f docker-compose.yml -f docker-compose.override.yml up
+##
+
+services:
+  # --- Infrastructure ---
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: scannit
+      POSTGRES_PASSWORD: scannit
+      POSTGRES_DB: scannit
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U scannit"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Create the default S3 bucket on first run
+  createbuckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set scannit http://minio:9000 minioadmin minioadmin;
+      mc mb --ignore-existing scannit/scannit-artifacts;
+      mc anonymous set download scannit/scannit-artifacts;
+      exit 0;
+      "
+
+  # --- Application Services ---
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    environment:
+      SCANNIT_DATABASE_URL: postgresql+asyncpg://scannit:scannit@db:5432/scannit
+      SCANNIT_REDIS_URL: redis://redis:6379/0
+      SCANNIT_S3_ENDPOINT_URL: http://minio:9000
+      SCANNIT_S3_ACCESS_KEY: minioadmin
+      SCANNIT_S3_SECRET_KEY: minioadmin
+      SCANNIT_CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://127.0.0.1:5173","http://127.0.0.1:3000"]'
+      SCANNIT_DEBUG: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/orchestrator/Dockerfile
+    environment:
+      SCANNIT_DATABASE_URL: postgresql+asyncpg://scannit:scannit@db:5432/scannit
+      SCANNIT_REDIS_URL: redis://redis:6379/0
+      SCANNIT_S3_ENDPOINT_URL: http://minio:9000
+      SCANNIT_S3_ACCESS_KEY: minioadmin
+      SCANNIT_S3_SECRET_KEY: minioadmin
+      SCANNIT_API_URL: http://api:8000
+      SCANNIT_DATA_ROOT: /data
+    volumes:
+      - job_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  minio_data:
+  job_data:

@@ -1,0 +1,7 @@
+ID,Name,TargetNight,TargetDate_IST,Criteria,Status
+MS-01,Repo skeleton + CI + tracker,3,2026-11-05,PLT-001 DONE; PLT-002 DONE; PLT-007 DONE; CI green on main,IN_PROGRESS
+MS-02,Core APIs + job engine,7,2026-11-09,PLT-003 DONE; PLT-004 DONE; PLT-005 DONE; mock job completes,PENDING
+MS-03,Asset catalog + resilient workflow,11,2026-11-13,PLT-006 DONE; tile queries work; workflow retries tested,PENDING
+MS-04,Integration test + observability,16,2026-11-18,PLT-008 DONE; PLT-009 DONE; e2e CI green,PENDING
+MS-05,Auth + staging + recovery,21,2026-11-23,PLT-010 DONE; auth enforced; large-dataset recovery tested,PENDING
+MS-06,Beta launch gate,24,2026-11-26,All P0/P1 DONE; schema frozen; runbook written; demo evidence,PENDING
