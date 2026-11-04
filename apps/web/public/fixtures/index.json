@@ -1,0 +1,14 @@
+{
+  "scenes": [
+    {
+      "id": "sample-site",
+      "label": "Synthetic sample site (40 x 40 m)",
+      "manifest": "sample-site.manifest.json"
+    },
+    {
+      "id": "account1-pr8-synthetic",
+      "label": "Account 1 PR #8 output (synthetic sparse points)",
+      "manifest": "account1-pr8/artifact_manifest.json"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "artifact_id": "glb-78e25b013f1f129f",
+  "artifact_type": "point_cloud_fallback",
+  "bounds_m": {
+    "frame_id": "gltf_yup",
+    "max": [
+      13.567956924438477,
+      14.405047416687012,
+      5.52875280380249
+    ],
+    "min": [
+      1.7506450414657593,
+      2.9003241062164307,
+      -6.677411079406738
+    ]
+  },
+  "checkpoint_summary": null,
+  "dataset_id": "ds-84cb0e75c0011bf8",
+  "job_id": "job-a5778efa4de5653e",
+  "mesh_acceptance": "not_met",
+  "mime_type": "model/gltf-binary",
+  "reference_lengths": [],
+  "scale_status": "arbitrary",
+  "schema_version": "0.1.0",
+  "sha256": "78e25b013f1f129f89f5433cfd6800174e013f7c59d601f05e6036fcdde36606",
+  "source_frame_id": "scene_zup",
+  "source_image_manifest_uri": "ingest/manifest.json",
+  "synthetic": true,
+  "target_frame_id": "gltf_yup",
+  "transform_4x4": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.0
+    ],
+    [
+      0.0,
+      -1.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "unit": "m",
+  "uri": "model.glb",
+  "warnings": [
+    "SYNTHETIC INPUT: not a real scan; nothing here validates real-world accuracy.",
+    "Mesh acceptance NOT MET: model.glb is a sparse point-cloud fallback.",
+    "Scale is arbitrary SfM units labelled 'm'; do not measure."
+  ]
+}

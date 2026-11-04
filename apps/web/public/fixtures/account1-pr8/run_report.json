@@ -1,0 +1,160 @@
+{
+  "blockers": [
+    "DATASET_MISSING"
+  ],
+  "environment": {
+    "cpu": "x86_64",
+    "gpu": null,
+    "os": "Linux 6.18.44-fc-v233",
+    "python": "3.11.18",
+    "tools": {
+      "pycolmap": "3.11.1"
+    }
+  },
+  "metrics": {
+    "frames_kept": 12,
+    "images_registered": 12,
+    "images_total": 12,
+    "mesh_faces": null,
+    "output_bytes": 200760,
+    "peak_rss_children_mb": 212.8,
+    "peak_rss_mb": 142.5,
+    "registered_fraction": 1.0,
+    "reprojection_error_px": {
+      "mean": 0.23106009682661707,
+      "median": 0.1846674480221273,
+      "p95": 0.5416652266160706
+    },
+    "sparse_points": 12497,
+    "wall_s": 0.001
+  },
+  "schema_version": "0.1.0",
+  "stages": [
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "validate",
+      "result": {
+        "files": 12
+      },
+      "skipped_cached": true,
+      "status": "succeeded",
+      "wall_s": 0.0
+    },
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "ingest",
+      "result": {
+        "frames_kept": 12,
+        "frames_total": 12,
+        "rejected_blur": 0,
+        "rejected_duplicate": 0,
+        "sources_rejected": 0
+      },
+      "skipped_cached": true,
+      "status": "succeeded",
+      "wall_s": 0.775
+    },
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "sparse",
+      "result": {
+        "error": null,
+        "images_registered": 12,
+        "images_total": 12,
+        "options": {
+          "camera_model": "PINHOLE",
+          "matcher": "exhaustive",
+          "max_image_size": 3200,
+          "min_registered_fraction": 0.5,
+          "num_threads": 1,
+          "seed": 0,
+          "single_camera": true,
+          "timeout_s": 1200
+        },
+        "pycolmap_version": "3.11.1",
+        "registered": [
+          "f-000000.png",
+          "f-000001.png",
+          "f-000002.png",
+          "f-000003.png",
+          "f-000004.png",
+          "f-000005.png",
+          "f-000006.png",
+          "f-000007.png",
+          "f-000008.png",
+          "f-000009.png",
+          "f-000010.png",
+          "f-000011.png"
+        ],
+        "registered_fraction": 1.0,
+        "reprojection_error_px": {
+          "mean": 0.23106009682661707,
+          "median": 0.1846674480221273,
+          "p95": 0.5416652266160706
+        },
+        "scale_status": "arbitrary",
+        "sparse_points": 12497,
+        "status": "succeeded"
+      },
+      "skipped_cached": true,
+      "status": "succeeded",
+      "wall_s": 62.139
+    },
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "dense",
+      "result": {
+        "_unavailable": true,
+        "reason": "No dense MVS backend in this build (needs OpenMVS CPU image or CUDA COLMAP)."
+      },
+      "skipped_cached": true,
+      "status": "unavailable",
+      "wall_s": 0.0
+    },
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "mesh",
+      "result": {
+        "_unavailable": true,
+        "reason": "Depends on dense stage."
+      },
+      "skipped_cached": true,
+      "status": "unavailable",
+      "wall_s": 0.0
+    },
+    {
+      "error": null,
+      "exit_code": 0,
+      "name": "export",
+      "result": {
+        "bounds_yup": {
+          "max": [
+            13.567956924438477,
+            14.405047416687012,
+            5.52875280380249
+          ],
+          "min": [
+            1.7506450414657593,
+            2.9003241062164307,
+            -6.677411079406738
+          ]
+        },
+        "bytes": 200760,
+        "points": 12497
+      },
+      "skipped_cached": true,
+      "status": "succeeded",
+      "wall_s": 0.023
+    }
+  ],
+  "status": "succeeded_with_fallback",
+  "warnings": [
+    "SYNTHETIC INPUT: not a real scan; nothing here validates real-world accuracy.",
+    "Mesh acceptance NOT MET: model.glb is a sparse point-cloud fallback."
+  ]
+}
