@@ -68,15 +68,11 @@ async def get_dataset(session: AsyncSession, dataset_id: uuid.UUID) -> dict[str,
 
 
 async def list_datasets(session: AsyncSession, project_id: uuid.UUID) -> list[dict[str, Any]]:
-    result = await session.execute(
-        select(DatasetRow).where(DatasetRow.project_id == project_id)
-    )
+    result = await session.execute(select(DatasetRow).where(DatasetRow.project_id == project_id))
     return [_to_dict(r) for r in result.scalars().all()]
 
 
-async def update_dataset(
-    session: AsyncSession, dataset_id: uuid.UUID, **updates: Any
-) -> dict[str, Any] | None:
+async def update_dataset(session: AsyncSession, dataset_id: uuid.UUID, **updates: Any) -> dict[str, Any] | None:
     row = await session.get(DatasetRow, dataset_id)
     if row is None:
         return None
@@ -110,9 +106,7 @@ async def get_job(session: AsyncSession, job_id: uuid.UUID) -> dict[str, Any] | 
     return _to_dict(row) if row else None
 
 
-async def update_job(
-    session: AsyncSession, job_id: uuid.UUID, **updates: Any
-) -> dict[str, Any] | None:
+async def update_job(session: AsyncSession, job_id: uuid.UUID, **updates: Any) -> dict[str, Any] | None:
     row = await session.get(JobRow, job_id)
     if row is None:
         return None
@@ -133,9 +127,7 @@ async def list_jobs(session: AsyncSession, project_id: uuid.UUID) -> list[dict[s
 # ── Artifacts ───────────────────────────────────────────────────────────
 
 
-async def create_artifact(
-    session: AsyncSession, job_id: uuid.UUID, **fields: Any
-) -> dict[str, Any]:
+async def create_artifact(session: AsyncSession, job_id: uuid.UUID, **fields: Any) -> dict[str, Any]:
     row = ArtifactRow(job_id=job_id, **fields)
     session.add(row)
     await session.flush()
@@ -148,7 +140,5 @@ async def get_artifact(session: AsyncSession, artifact_id: uuid.UUID) -> dict[st
 
 
 async def list_artifacts(session: AsyncSession, job_id: uuid.UUID) -> list[dict[str, Any]]:
-    result = await session.execute(
-        select(ArtifactRow).where(ArtifactRow.job_id == job_id)
-    )
+    result = await session.execute(select(ArtifactRow).where(ArtifactRow.job_id == job_id))
     return [_to_dict(r) for r in result.scalars().all()]

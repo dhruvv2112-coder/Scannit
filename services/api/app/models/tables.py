@@ -36,9 +36,7 @@ class DatasetRow(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     schema_version: Mapped[str] = schema_version_col()
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False
-    )
+    project_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(256), nullable=False)
     source_type: Mapped[str] = mapped_column(String(32), default="images")
     upload_status: Mapped[str] = mapped_column(String(32), default="pending")
@@ -55,12 +53,8 @@ class JobRow(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     schema_version: Mapped[str] = schema_version_col()
-    project_id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False
-    )
-    dataset_id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("datasets.id"), nullable=False
-    )
+    project_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    dataset_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("datasets.id"), nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="CREATED")
     config: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
     progress_pct: Mapped[float] = mapped_column(Float, default=0.0)
@@ -88,9 +82,7 @@ class ArtifactRow(Base):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     schema_version: Mapped[str] = schema_version_col()
-    job_id: Mapped[uuid.UUID] = mapped_column(
-        PG_UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False
-    )
+    job_id: Mapped[uuid.UUID] = mapped_column(PG_UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=False)
     stage: Mapped[str] = mapped_column(String(32), nullable=False)
     content_hash: Mapped[str] = mapped_column(String(128), nullable=False)
     software_version: Mapped[str] = mapped_column(String(64), nullable=False)
