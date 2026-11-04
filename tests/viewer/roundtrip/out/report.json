@@ -1,0 +1,524 @@
+{
+  "tolerance_m": 1e-05,
+  "results": [
+    {
+      "input": "sample-site.glb",
+      "output": "sample-site.blender.glb",
+      "blender": "5.0.1",
+      "objects_in_blender": {
+        "GROUND_40x40m": [
+          "MESH",
+          [
+            40.0,
+            40.0,
+            0.0
+          ]
+        ],
+        "REF_1m": [
+          "MESH",
+          [
+            1.0,
+            0.05,
+            0.05
+          ]
+        ],
+        "TANK_A_d6m_h8m": [
+          "MESH",
+          [
+            6.0,
+            6.0,
+            8.0
+          ]
+        ],
+        "TANK_B_d4m_h6m": [
+          "MESH",
+          [
+            4.0,
+            4.0,
+            6.0
+          ]
+        ],
+        "SHED_12x6x5m": [
+          "MESH",
+          [
+            12.0,
+            6.0,
+            5.0
+          ]
+        ],
+        "PILLAR_0_0.4x6m": [
+          "MESH",
+          [
+            0.4,
+            0.4,
+            6.0
+          ]
+        ],
+        "PILLAR_1_0.4x6m": [
+          "MESH",
+          [
+            0.4,
+            0.4,
+            6.0
+          ]
+        ],
+        "PILLAR_2_0.4x6m": [
+          "MESH",
+          [
+            0.4,
+            0.4,
+            6.0
+          ]
+        ],
+        "PILLAR_3_0.4x6m": [
+          "MESH",
+          [
+            0.4,
+            0.4,
+            6.0
+          ]
+        ],
+        "PILLAR_4_0.4x6m": [
+          "MESH",
+          [
+            0.4,
+            0.4,
+            6.0
+          ]
+        ],
+        "PIPE_RACK_24m": [
+          "MESH",
+          [
+            24.4,
+            0.6,
+            0.3
+          ]
+        ]
+      },
+      "use_mesh_vertices": false,
+      "checks": [
+        {
+          "check": "overall bounds equal (glTF Y-up, meters)",
+          "ok": true,
+          "detail": "max |\u0394| = 3.73e-10 m"
+        },
+        {
+          "check": "node names preserved",
+          "ok": true,
+          "detail": "missing [], added []"
+        },
+        {
+          "check": "per-node world bounds equal (position, size, up axis)",
+          "ok": true,
+          "detail": "max |\u0394| = 9.54e-08 m"
+        },
+        {
+          "check": "primitive modes preserved",
+          "ok": true,
+          "detail": "[4] -> [4]"
+        },
+        {
+          "check": "vertex attributes preserved (e.g. NORMAL, COLOR_0)",
+          "ok": true,
+          "detail": "['NORMAL', 'POSITION'] -> ['NORMAL', 'POSITION']"
+        },
+        {
+          "check": "triangle count preserved",
+          "ok": true,
+          "detail": "482 -> 482"
+        },
+        {
+          "check": "point count preserved",
+          "ok": true,
+          "detail": "0 -> 0"
+        },
+        {
+          "check": "material names preserved",
+          "ok": true,
+          "detail": "['cladding', 'concrete', 'galvanized', 'reference_orange', 'steel_painted'] -> ['cladding', 'concrete', 'galvanized', 'reference_orange', 'steel_painted']"
+        },
+        {
+          "check": "PBR factors preserved (baseColor, metallic, roughness)",
+          "ok": true,
+          "detail": "max |\u0394| = 2.38e-08; "
+        },
+        {
+          "check": "asset.extras (units/up-axis/provenance) preserved",
+          "ok": false,
+          "detail": "{'units': 'meters', 'upAxis': '+Y', 'handedness': 'right', 'synthetic': True} -> None"
+        }
+      ],
+      "original": {
+        "bounds": {
+          "min": [
+            -20.0,
+            -3.725290284584126e-10,
+            -20.0
+          ],
+          "max": [
+            20.0,
+            8.0,
+            20.0
+          ]
+        },
+        "triangles": 482,
+        "points": 0,
+        "modes": [
+          4
+        ],
+        "generator": "xr-001 make-sample-glb"
+      },
+      "exported": {
+        "bounds": {
+          "min": [
+            -20.0,
+            -1.2246467996456087e-15,
+            -20.0
+          ],
+          "max": [
+            20.0,
+            8.0,
+            20.0
+          ]
+        },
+        "triangles": 482,
+        "points": 0,
+        "modes": [
+          4
+        ],
+        "generator": "Khronos glTF Blender I/O v5.0.21"
+      }
+    },
+    {
+      "input": "model.glb",
+      "output": "model.blender.glb",
+      "blender": "5.0.1",
+      "objects_in_blender": {
+        "reconstruction": [
+          "MESH",
+          [
+            11.817312,
+            12.206163,
+            11.504724
+          ]
+        ]
+      },
+      "use_mesh_vertices": false,
+      "checks": [
+        {
+          "check": "overall bounds equal (glTF Y-up, meters)",
+          "ok": false,
+          "detail": "max |\u0394| = inf m"
+        },
+        {
+          "check": "node names preserved",
+          "ok": false,
+          "detail": "missing ['reconstruction'], added []"
+        },
+        {
+          "check": "per-node world bounds equal (position, size, up axis)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00 m"
+        },
+        {
+          "check": "primitive modes preserved",
+          "ok": false,
+          "detail": "[0] -> []"
+        },
+        {
+          "check": "vertex attributes preserved (e.g. NORMAL, COLOR_0)",
+          "ok": false,
+          "detail": "['COLOR_0', 'POSITION'] -> []"
+        },
+        {
+          "check": "triangle count preserved",
+          "ok": true,
+          "detail": "0 -> 0"
+        },
+        {
+          "check": "point count preserved",
+          "ok": false,
+          "detail": "12497 -> 0"
+        },
+        {
+          "check": "material names preserved",
+          "ok": true,
+          "detail": "[] -> []"
+        },
+        {
+          "check": "PBR factors preserved (baseColor, metallic, roughness)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00; "
+        },
+        {
+          "check": "asset.extras (units/up-axis/provenance) preserved",
+          "ok": false,
+          "detail": "{'scannit': {'fallback': 'sparse_points', 'scale_status': 'arbitrary', 'synthetic': True}} -> None"
+        }
+      ],
+      "original": {
+        "bounds": {
+          "min": [
+            1.7506450414657593,
+            2.9003241062164307,
+            -6.677411079406738
+          ],
+          "max": [
+            13.567956924438477,
+            14.405047416687012,
+            5.52875280380249
+          ]
+        },
+        "triangles": 0,
+        "points": 12497,
+        "modes": [
+          0
+        ],
+        "generator": "scannit-recon"
+      },
+      "exported": {
+        "bounds": {
+          "min": [
+            null,
+            null,
+            null
+          ],
+          "max": [
+            null,
+            null,
+            null
+          ]
+        },
+        "triangles": 0,
+        "points": 0,
+        "modes": [],
+        "generator": "Khronos glTF Blender I/O v5.0.21"
+      }
+    },
+    {
+      "input": "model.glb",
+      "output": "model.loose-points.blender.glb",
+      "blender": "5.0.1",
+      "objects_in_blender": {
+        "reconstruction": [
+          "MESH",
+          [
+            11.817312,
+            12.206163,
+            11.504724
+          ]
+        ]
+      },
+      "use_mesh_vertices": true,
+      "checks": [
+        {
+          "check": "overall bounds equal (glTF Y-up, meters)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00 m"
+        },
+        {
+          "check": "node names preserved",
+          "ok": true,
+          "detail": "missing [], added []"
+        },
+        {
+          "check": "per-node world bounds equal (position, size, up axis)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00 m"
+        },
+        {
+          "check": "primitive modes preserved",
+          "ok": true,
+          "detail": "[0] -> [0]"
+        },
+        {
+          "check": "vertex attributes preserved (e.g. NORMAL, COLOR_0)",
+          "ok": true,
+          "detail": "['COLOR_0', 'POSITION'] -> ['COLOR_0', 'POSITION']"
+        },
+        {
+          "check": "triangle count preserved",
+          "ok": true,
+          "detail": "0 -> 0"
+        },
+        {
+          "check": "point count preserved",
+          "ok": true,
+          "detail": "12497 -> 12497"
+        },
+        {
+          "check": "material names preserved",
+          "ok": false,
+          "detail": "[] -> ['DefaultMaterial']"
+        },
+        {
+          "check": "PBR factors preserved (baseColor, metallic, roughness)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00; "
+        },
+        {
+          "check": "asset.extras (units/up-axis/provenance) preserved",
+          "ok": false,
+          "detail": "{'scannit': {'fallback': 'sparse_points', 'scale_status': 'arbitrary', 'synthetic': True}} -> None"
+        }
+      ],
+      "original": {
+        "bounds": {
+          "min": [
+            1.7506450414657593,
+            2.9003241062164307,
+            -6.677411079406738
+          ],
+          "max": [
+            13.567956924438477,
+            14.405047416687012,
+            5.52875280380249
+          ]
+        },
+        "triangles": 0,
+        "points": 12497,
+        "modes": [
+          0
+        ],
+        "generator": "scannit-recon"
+      },
+      "exported": {
+        "bounds": {
+          "min": [
+            1.7506450414657593,
+            2.9003241062164307,
+            -6.677411079406738
+          ],
+          "max": [
+            13.567956924438477,
+            14.405047416687012,
+            5.52875280380249
+          ]
+        },
+        "triangles": 0,
+        "points": 12497,
+        "modes": [
+          0
+        ],
+        "generator": "Khronos glTF Blender I/O v5.0.21"
+      }
+    },
+    {
+      "input": "tile-w.glb",
+      "output": "tile-w.blender.glb",
+      "blender": "5.0.1",
+      "objects_in_blender": {
+        "GROUND_W_20x40m": [
+          "MESH",
+          [
+            20.0,
+            40.0,
+            0.0
+          ]
+        ],
+        "TANK_W_d6m_h8m": [
+          "MESH",
+          [
+            6.0,
+            6.0,
+            8.0
+          ]
+        ]
+      },
+      "use_mesh_vertices": false,
+      "checks": [
+        {
+          "check": "overall bounds equal (glTF Y-up, meters)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00 m"
+        },
+        {
+          "check": "node names preserved",
+          "ok": true,
+          "detail": "missing [], added []"
+        },
+        {
+          "check": "per-node world bounds equal (position, size, up axis)",
+          "ok": true,
+          "detail": "max |\u0394| = 0.00e+00 m"
+        },
+        {
+          "check": "primitive modes preserved",
+          "ok": true,
+          "detail": "[4] -> [4]"
+        },
+        {
+          "check": "vertex attributes preserved (e.g. NORMAL, COLOR_0)",
+          "ok": true,
+          "detail": "['NORMAL', 'POSITION'] -> ['NORMAL', 'POSITION']"
+        },
+        {
+          "check": "triangle count preserved",
+          "ok": true,
+          "detail": "194 -> 194"
+        },
+        {
+          "check": "point count preserved",
+          "ok": true,
+          "detail": "0 -> 0"
+        },
+        {
+          "check": "material names preserved",
+          "ok": false,
+          "detail": "['cladding', 'concrete', 'steel_painted'] -> ['concrete', 'steel_painted']"
+        },
+        {
+          "check": "PBR factors preserved (baseColor, metallic, roughness)",
+          "ok": true,
+          "detail": "max |\u0394| = 2.38e-08; "
+        },
+        {
+          "check": "asset.extras (units/up-axis/provenance) preserved",
+          "ok": false,
+          "detail": "{'units': 'meters', 'upAxis': '+Y', 'synthetic': True, 'tile': 'tile-w'} -> None"
+        }
+      ],
+      "original": {
+        "bounds": {
+          "min": [
+            -10.0,
+            -1.2246467996456087e-15,
+            -20.0
+          ],
+          "max": [
+            10.0,
+            8.0,
+            20.0
+          ]
+        },
+        "triangles": 194,
+        "points": 0,
+        "modes": [
+          4
+        ],
+        "generator": "xr-003 make-tiles"
+      },
+      "exported": {
+        "bounds": {
+          "min": [
+            -10.0,
+            -1.2246467996456087e-15,
+            -20.0
+          ],
+          "max": [
+            10.0,
+            8.0,
+            20.0
+          ]
+        },
+        "triangles": 194,
+        "points": 0,
+        "modes": [
+          4
+        ],
+        "generator": "Khronos glTF Blender I/O v5.0.21"
+      }
+    }
+  ],
+  "blender": "5.0.1"
+}
