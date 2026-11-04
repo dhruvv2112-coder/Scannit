@@ -9,6 +9,14 @@
       "id": "account1-pr8-synthetic",
       "label": "Account 1 PR #8 output (synthetic sparse points)",
       "manifest": "account1-pr8/artifact_manifest.json"
+    },
+    {
+      "id": "two-tiles",
+      "label": "Two synthetic tiles (progressive)",
+      "tiles": [
+        "tiles/tile-w.manifest.json",
+        "tiles/tile-e.manifest.json"
+      ]
     }
   ]
 }

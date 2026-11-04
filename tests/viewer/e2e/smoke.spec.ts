@@ -103,7 +103,7 @@ test('clicking an object selects and highlights it', async ({ page }) => {
   // Tank A centre in viewer space is (-8, 4, -6).
   const pt = await page.evaluate(() => window.__viewer!.project([-8, 4, -3]));
   await page.mouse.click(pt!.x, pt!.y);
-  await expect(page.getByTestId('selected')).toContainText('TANK_A');
+  await expect(page.getByTestId('inspect-node')).toContainText('TANK_A');
   expect(errors).toEqual([]);
 });
 

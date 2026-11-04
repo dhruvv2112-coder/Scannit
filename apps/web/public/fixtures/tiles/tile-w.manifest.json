@@ -1,0 +1,61 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "synthetic-tile-w-v1",
+  "artifact_type": "mesh",
+  "artifact_origin": "synthetic",
+  "uri": "tile-w.glb",
+  "sha256": "f4b60a8d466d0892b0298898576332b40d6cef20105a37721fc8ab969019fa3c",
+  "mime_type": "model/gltf-binary",
+  "byte_size": 10232,
+  "source_frame_id": "scene_zup",
+  "target_frame_id": "gltf_yup_tile-w",
+  "transform_4x4": [
+    [
+      1,
+      0,
+      0,
+      10
+    ],
+    [
+      0,
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      -1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      1
+    ]
+  ],
+  "bounds_m": {
+    "frame_id": "gltf_yup_tile-w",
+    "min": [
+      -10,
+      0,
+      -20
+    ],
+    "max": [
+      10,
+      8,
+      20
+    ]
+  },
+  "unit": "m",
+  "scale_status": "metric_unvalidated",
+  "reference_lengths": [],
+  "dataset_id": "synthetic-tiles",
+  "job_id": "none",
+  "synthetic": true,
+  "mesh_acceptance": "met",
+  "warnings": [
+    "Synthetic tile; not a camera reconstruction."
+  ]
+}

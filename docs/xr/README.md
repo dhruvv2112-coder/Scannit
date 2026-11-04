@@ -24,4 +24,9 @@ scene list (fixtures index or `GET /v0/jobs`) → lifecycle (uploaded / queued /
 - Manifest adapter (accepts Account 1 PR #8 output as-is): [manifest-adapter.md](manifest-adapter.md).
 
 ## Keys
-Drag orbit · right-drag pan · wheel zoom · `F` fly (WASD, Q/E, Shift) · `M` measure (snaps to vertices) · `Esc` clear · `R` fit · `+`/`-` zoom.
+Drag orbit/look · right-drag pan · wheel zoom · `G` walk (WASD/arrows, Shift; 1.7 m eye height, collision, follows ground) · `F` fly (+Q/E) · double-click: teleport (walk/fly) or re-centre (orbit) · `M` measure (snaps to vertices/points) · click: inspect · `Esc` clear · `R` reset · Reduced-motion toggle (defaults to the OS setting).
+
+## Other tools
+- **Open local file…**: a `.glb` (optionally with its manifest `.json`) from this computer, shown as **LOCAL PREVIEW — not an integrated result**. Without a manifest: hash unverified, scale arbitrary, origin unknown.
+- **Download metadata JSON**: what the viewer received and verified (sha256, frames, transforms, bounds, warnings, raw manifest). Not a new export.
+- **Tiled scenes**: `index.json` entries with `tiles: [...]` load progressively, each placed by its own manifest transform; GPU memory is released when the scene changes.
