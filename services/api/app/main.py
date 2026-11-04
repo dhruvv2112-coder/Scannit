@@ -19,8 +19,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # Gracefully skip when running without a database (unit tests, CI).
     try:
         from app.core.database import engine
-        from app.models.base import Base
         from app.models import tables  # noqa: F401
+        from app.models.base import Base
 
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
