@@ -2,3 +2,5 @@
 numpy==2.1.3
 opencv-python-headless==4.10.0.84
 pillow==11.0.0
+# COLMAP via PyCOLMAP wheels (BSD-3-Clause; bundles COLMAP and its BSD/MIT-licensed deps). CPU build.
+pycolmap==3.11.1
