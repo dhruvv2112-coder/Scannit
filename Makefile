@@ -1,11 +1,10 @@
-# Shared Makefile. Each track adds its own targets; `make ci` runs everything CI runs.
+# Reconstruction (account1) targets. Shared CI lives in account2's .github/workflows/ci.yml.
 PY ?= python3
 
-.PHONY: help schemas-test ci
+.PHONY: help recon-ci
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1
 
-schemas-test:
-	$(PY) -m pytest -q tests/schemas
-
-ci: schemas-test
+# Grows as the REC stack lands; each REC PR adds its targets here.
+recon-ci:
+	@echo "recon-ci: no reconstruction code on this branch yet"
