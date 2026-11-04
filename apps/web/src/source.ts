@@ -12,8 +12,10 @@ export const TERMINAL: ReadonlySet<JobStatus> = new Set(['COMPLETE', 'FAILED', '
 export interface SceneEntry {
   id: string;
   label: string;
-  /** Absolute URL of the artifact manifest, when one exists. */
+  /** Absolute URL of the artifact manifest, when one exists (first tile for tiled scenes). */
   manifestUrl: string | null;
+  /** Tiled scenes: every tile manifest, loaded progressively in order. */
+  tileManifestUrls?: string[];
   job?: { id: string; status: JobStatus; progress_pct?: number; error_message?: string | null };
 }
 
@@ -35,14 +37,17 @@ async function getJson(url: string, signal?: AbortSignal, fetchImpl: typeof fetc
   try { return await res.json(); } catch { throw new Error(`invalid JSON from ${new URL(url).pathname}`); }
 }
 
-/** index.json: { scenes: [{ id, label, manifest }] } with manifest paths relative to index.json. */
+/** index.json: { scenes: [{ id, label, manifest } | { id, label, tiles: [manifest…] }] }, paths relative to index.json. */
 export function fixtureSource(indexUrl: string, fetchImpl?: typeof fetch): DataSource {
   return {
     kind: 'fixtures',
     async listScenes(signal) {
-      const data = (await getJson(indexUrl, signal, fetchImpl)) as { scenes?: { id: string; label: string; manifest: string }[] };
+      const data = (await getJson(indexUrl, signal, fetchImpl)) as { scenes?: { id: string; label: string; manifest?: string; tiles?: string[] }[] };
       if (!Array.isArray(data?.scenes)) throw new Error('fixture index has no "scenes" array');
-      return data.scenes.map((s) => ({ id: s.id, label: s.label, manifestUrl: new URL(s.manifest, indexUrl).toString() }));
+      return data.scenes.map((s) => {
+        const tiles = (s.tiles ?? (s.manifest ? [s.manifest] : [])).map((t) => new URL(t, indexUrl).toString());
+        return { id: s.id, label: s.label, manifestUrl: tiles[0] ?? null, tileManifestUrls: tiles.length > 1 ? tiles : undefined };
+      });
     },
   };
 }

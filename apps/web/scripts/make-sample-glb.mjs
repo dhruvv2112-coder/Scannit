@@ -135,5 +135,6 @@ writeFileSync(join(fixturesDir, 'sample-site.manifest.json'), JSON.stringify(man
 writeFileSync(join(fixturesDir, 'index.json'), JSON.stringify({ scenes: [
   { id: 'sample-site', label: 'Synthetic sample site (40 x 40 m)', manifest: 'sample-site.manifest.json' },
   { id: 'account1-pr8-synthetic', label: 'Account 1 PR #8 output (synthetic sparse points)', manifest: 'account1-pr8/artifact_manifest.json' },
+  { id: 'two-tiles', label: 'Two synthetic tiles (progressive)', tiles: ['tiles/tile-w.manifest.json', 'tiles/tile-e.manifest.json'] },
 ] }, null, 2) + '\n');
 console.log(`wrote ${fixturesDir}/sample-site.manifest.json sha256=${manifest.sha256}`);

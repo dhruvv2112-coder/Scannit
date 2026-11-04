@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "XR-001 viewer skeleton",
   "scripts": {
-    "sample": "node scripts/make-sample-glb.mjs public/samples/sample-site.glb",
+    "sample": "node scripts/make-sample-glb.mjs public/samples/sample-site.glb && node scripts/make-tiles.mjs public/fixtures/tiles",
     "dev": "vite",
     "build": "tsc -p . && vite build",
     "preview": "vite preview",
