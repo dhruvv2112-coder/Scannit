@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "mesh-0001-lod0",
+  "uri": "jobs/job-0001/mesh/lod0.ply",
+  "media_type": "model/ply",
+  "bytes": 5242880,
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "units": "m",
+  "frame": {
+    "frame_id": "scene",
+    "units": "m",
+    "handedness": "right",
+    "up_axis": "+Z",
+    "axes": "LOCAL_ZUP",
+    "origin_description": "First registered camera centre; Z aligned to estimated gravity."
+  },
+  "bbox": {
+    "frame_id": "scene",
+    "min_m": [
+      0,
+      0,
+      0
+    ],
+    "max_m": [
+      20.5,
+      12.0,
+      6.2
+    ]
+  },
+  "vertex_count": 120000,
+  "face_count": 240000,
+  "lod": 0,
+  "texture_ids": [
+    "tex-0001"
+  ],
+  "has_uv": true,
+  "scale_status": "metric_validated",
+  "provenance": {
+    "job_id": "job-0001",
+    "stage": "mesh",
+    "tool": "colmap",
+    "tool_version": "3.12",
+    "source_checksums": [
+      {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ],
+    "created_at": "2026-11-03T00:00:00Z"
+  }
+}

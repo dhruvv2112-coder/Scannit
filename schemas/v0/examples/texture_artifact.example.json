@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1.0",
+  "artifact_id": "tex-0001",
+  "uri": "jobs/job-0001/texture/atlas0.png",
+  "media_type": "image/png",
+  "bytes": 8388608,
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "width_px": 4096,
+  "height_px": 4096,
+  "color_space": "sRGB",
+  "color_validation": "unvalidated",
+  "mesh_ids": [
+    "mesh-0001-lod0"
+  ],
+  "provenance": {
+    "job_id": "job-0001",
+    "stage": "mesh",
+    "tool": "colmap",
+    "tool_version": "3.12",
+    "source_checksums": [
+      {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    ],
+    "created_at": "2026-11-03T00:00:00Z"
+  }
+}

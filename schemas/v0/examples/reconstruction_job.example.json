@@ -1,0 +1,66 @@
+{
+  "schema_version": "0.1.0",
+  "job_id": "job-0001",
+  "status": "running",
+  "created_at": "2026-11-03T00:00:00Z",
+  "inputs": [
+    {
+      "uri": "s3://scannit-data/demo/hall/v1/walk.mp4",
+      "media_type": "video/mp4",
+      "bytes": 104857600,
+      "checksum": {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
+    }
+  ],
+  "options": {
+    "frame_interval_s": 0.5,
+    "max_frames": 2000,
+    "blur_threshold": 60,
+    "dedupe_max_hamming": 4,
+    "camera_model": "OPENCV",
+    "dense": true
+  },
+  "scale_reference": {
+    "type": "distances",
+    "distances": [
+      {
+        "id": "d1",
+        "point_a": "tgt-1",
+        "point_b": "tgt-2",
+        "length_m": 2.0,
+        "sigma_mm": 1.0,
+        "role": "control"
+      },
+      {
+        "id": "d2",
+        "point_a": "tgt-3",
+        "point_b": "tgt-4",
+        "length_m": 1.5,
+        "sigma_mm": 1.0,
+        "role": "checkpoint"
+      }
+    ]
+  },
+  "stages": [
+    {
+      "name": "ingest",
+      "status": "succeeded",
+      "attempt": 1,
+      "started_at": "2026-11-03T00:00:01Z",
+      "finished_at": "2026-11-03T00:02:00Z"
+    },
+    {
+      "name": "sparse",
+      "status": "failed",
+      "attempt": 1,
+      "error": {
+        "class": "insufficient_overlap",
+        "message": "Only 12% of images registered",
+        "retryable": false
+      }
+    }
+  ],
+  "artifacts_uri": "s3://scannit-data/jobs/job-0001/"
+}

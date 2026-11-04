@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/mesh_artifact.schema.json",
+  "title": "MeshArtifact",
+  "description": "Reconstruction mesh in the scene frame (Z-up, meters). GLB conversion to Y-up is done by the export step and recorded there.",
+  "type": "object",
+  "required": ["schema_version", "artifact_id", "uri", "media_type", "bytes", "checksum", "units", "frame", "bbox", "vertex_count", "face_count", "lod", "scale_status", "provenance"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "artifact_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "uri": { "$ref": "common.schema.json#/$defs/Uri" },
+    "media_type": { "enum": ["model/ply", "model/obj", "model/gltf-binary"] },
+    "bytes": { "type": "integer", "minimum": 1 },
+    "checksum": { "$ref": "common.schema.json#/$defs/Checksum" },
+    "units": { "const": "m" },
+    "frame": { "$ref": "common.schema.json#/$defs/CoordinateFrame" },
+    "bbox": { "$ref": "common.schema.json#/$defs/BoundingBox" },
+    "vertex_count": { "type": "integer", "minimum": 0 },
+    "face_count": { "type": "integer", "minimum": 0 },
+    "lod": { "type": "integer", "minimum": 0, "description": "0 = finest." },
+    "tile_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "texture_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } },
+    "has_uv": { "type": "boolean" },
+    "scale_status": { "$ref": "common.schema.json#/$defs/ScaleStatus" },
+    "provenance": { "$ref": "common.schema.json#/$defs/Provenance" }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/camera_model.schema.json",
+  "title": "CameraModel",
+  "description": "Intrinsics in COLMAP model naming. params follow COLMAP order for the model; pixel units.",
+  "type": "object",
+  "required": ["schema_version", "camera_id", "model", "width_px", "height_px", "params", "source"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "camera_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "model": { "enum": ["SIMPLE_PINHOLE", "PINHOLE", "SIMPLE_RADIAL", "RADIAL", "OPENCV", "OPENCV_FISHEYE", "FULL_OPENCV"] },
+    "width_px": { "type": "integer", "minimum": 1 },
+    "height_px": { "type": "integer", "minimum": 1 },
+    "params": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 12 },
+    "source": {
+      "description": "exif_prior = guessed from EXIF focal length; estimated = refined by bundle adjustment; calibrated = from a calibration target session.",
+      "enum": ["exif_prior", "estimated", "calibrated"]
+    },
+    "make": { "type": "string", "maxLength": 128 },
+    "model_name": { "type": "string", "maxLength": 128 },
+    "focal_length_mm": { "type": "number", "exclusiveMinimum": 0 },
+    "focal_length_35mm_equiv_mm": { "type": "number", "exclusiveMinimum": 0 },
+    "calibration_rms_px": { "type": "number", "minimum": 0 }
+  },
+  "additionalProperties": false
+}
