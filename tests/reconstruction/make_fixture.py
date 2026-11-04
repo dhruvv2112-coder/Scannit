@@ -11,6 +11,7 @@ Produces, from a seeded random texture:
   pan.mp4           4 s panning video at 10 fps with a 1 s freeze -> duplicate frames
   not_an_image.jpg  text file with a .jpg extension -> rejected by content sniffing
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -53,16 +54,28 @@ def exif_bytes(orientation: int = 1) -> bytes:
     def entry(tag, typ, count, value: bytes) -> bytes:
         return struct.pack("<HHI", tag, typ, count) + value.ljust(4, b"\x00")
 
-    ifd0 = struct.pack("<H", n0) + b"".join([
-        entry(0x010F, 2, len(make), struct.pack("<I", make_off)),
-        entry(0x0110, 2, len(model), struct.pack("<I", model_off)),
-        entry(0x0112, 3, 1, struct.pack("<H", orientation)),
-        entry(0x8769, 4, 1, struct.pack("<I", exif_off)),
-    ]) + struct.pack("<I", 0)
-    exif_ifd = struct.pack("<H", n1) + b"".join([
-        entry(0x920A, 5, 1, struct.pack("<I", focal_off)),
-        entry(0xA405, 3, 1, struct.pack("<H", 26)),
-    ]) + struct.pack("<I", 0)
+    ifd0 = (
+        struct.pack("<H", n0)
+        + b"".join(
+            [
+                entry(0x010F, 2, len(make), struct.pack("<I", make_off)),
+                entry(0x0110, 2, len(model), struct.pack("<I", model_off)),
+                entry(0x0112, 3, 1, struct.pack("<H", orientation)),
+                entry(0x8769, 4, 1, struct.pack("<I", exif_off)),
+            ]
+        )
+        + struct.pack("<I", 0)
+    )
+    exif_ifd = (
+        struct.pack("<H", n1)
+        + b"".join(
+            [
+                entry(0x920A, 5, 1, struct.pack("<I", focal_off)),
+                entry(0xA405, 3, 1, struct.pack("<H", 26)),
+            ]
+        )
+        + struct.pack("<I", 0)
+    )
     tiff = b"II*\x00" + struct.pack("<I", ifd0_off) + ifd0 + exif_ifd + make + model + struct.pack("<II", 42, 10)
     return b"Exif\x00\x00" + tiff
 
@@ -87,16 +100,38 @@ def build(out: Path) -> list[Path]:
 
     frames_dir = out / "_video_frames"
     frames_dir.mkdir(exist_ok=True)
-    n = 0
     xs = list(np.linspace(0, 3 * W - 1, 30).astype(int)) + [3 * W - 1] * 10  # pan then 1 s freeze
-    for x in xs:
+    for n, x in enumerate(xs):
         cv2.imwrite(str(frames_dir / f"{n:04d}.png"), canvas[:, x : x + W])
-        n += 1
     subprocess.run(
-        ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-framerate", "10", "-i", str(frames_dir / "%04d.png"),
-         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "12", "-threads", "1",
-         "-fflags", "+bitexact", "-flags:v", "+bitexact", "-map_metadata", "-1", str(out / "pan.mp4")],
-        check=True, timeout=120,
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-framerate",
+            "10",
+            "-i",
+            str(frames_dir / "%04d.png"),
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-crf",
+            "12",
+            "-threads",
+            "1",
+            "-fflags",
+            "+bitexact",
+            "-flags:v",
+            "+bitexact",
+            "-map_metadata",
+            "-1",
+            str(out / "pan.mp4"),
+        ],
+        check=True,
+        timeout=120,
     )
     for f in frames_dir.iterdir():
         f.unlink()

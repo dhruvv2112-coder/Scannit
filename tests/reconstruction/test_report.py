@@ -1,11 +1,10 @@
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
-from referencing import Registry, Resource
-
 from ingest.core import IngestOptions, run
+from jsonschema import Draft202012Validator
 from recon_core.report import from_ingest
+from referencing import Registry, Resource
 
 ROOT = Path(__file__).resolve().parents[2]
 

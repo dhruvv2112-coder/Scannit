@@ -1,4 +1,5 @@
 """Content checksums and perceptual hashes."""
+
 from __future__ import annotations
 
 import hashlib

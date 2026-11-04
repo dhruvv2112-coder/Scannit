@@ -2,13 +2,14 @@
 
 Usage: python -m recon_core.report INGEST_MANIFEST --job-id ID --out quality.json
 """
+
 from __future__ import annotations
 
 import argparse
 import json
 import platform
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from recon_core import SCHEMA_VERSION
@@ -19,7 +20,7 @@ def from_ingest(manifest: dict, job_id: str, generated_at: str | None = None) ->
     return {
         "schema_version": SCHEMA_VERSION,
         "job_id": job_id,
-        "generated_at": generated_at or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "generated_at": generated_at or datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "images_total": s["frames_total"],
         "images_rejected_blur": s["rejected_blur"],
         "images_rejected_duplicate": s["rejected_duplicate"],
