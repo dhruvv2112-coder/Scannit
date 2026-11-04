@@ -11,6 +11,7 @@ const PUB = resolve(__dirname, '../../../apps/web/public');
 const cam = (page: Page) => page.evaluate(() => window.__viewer!.camera);
 
 test('walk: teleport onto the ground, then walking into the shed is blocked', async ({ page }) => {
+  test.setTimeout(90_000);
   const errors = watchErrors(page);
   await page.goto('/');
   await waitReady(page);
@@ -29,12 +30,18 @@ test('walk: teleport onto the ground, then walking into the shed is blocked', as
   expect(start[0]).toBeCloseTo(9, 0);
   expect(start[2]).toBeCloseTo(1.5, 0);
 
+  // Hold W until the walker has stopped (blocked) rather than for a fixed time: software-GL CI runners
+  // stall for whole seconds, so wall-clock time is not walking time.
   await page.keyboard.down('w');
   const trace: string[] = [];
-  for (let i = 0; i < 14; i++) {
+  let prev = start, still = 0;
+  for (let i = 0; i < 60 && still < 4; i++) {
     await page.waitForTimeout(500);
-    const v = (await viewer(page))!;
-    trace.push(`${(i + 1) * 0.5}s cam=${(await cam(page)).map((x) => x.toFixed(2)).join(',')} fps=${v.stats.fps} nav=${v.nav}`);
+    const now = await cam(page), v = (await viewer(page))!;
+    trace.push(`${(i + 1) * 0.5}s cam=${now.map((x) => x.toFixed(2)).join(',')} fps=${v.stats.fps} nav=${v.nav}`);
+    const progressed = Math.hypot(now[0] - start[0], now[2] - start[2]) > 0.5;
+    still = progressed && Math.hypot(now[0] - prev[0], now[2] - prev[2]) < 0.005 ? still + 1 : 0;
+    prev = now;
   }
   await page.keyboard.up('w');
   const end = await cam(page);
