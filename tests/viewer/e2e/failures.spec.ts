@@ -14,6 +14,8 @@ const routeManifest = (page: Page, body: unknown, status = 200) =>
 async function expectNoModel(page: Page) {
   const v = (await viewer(page))!;
   expect(v.loaded).toBeNull();
+  expect(v.lifecycle).toBe('failed');
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'failed');
   await expect(page.locator('canvas')).toBeVisible();
 }
 

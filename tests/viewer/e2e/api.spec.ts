@@ -1,4 +1,4 @@
-// XR-002 against a mocked Account 2 API (routes proposed in docs/xr/manifest-proposal.md).
+// XR-002 against a mocked Account 2 API (routes proposed in docs/xr/manifest-adapter.md).
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
@@ -27,7 +27,10 @@ test('processing job is polled until COMPLETE, then the artifact loads', async (
   await mockApi(page, { 'j-run': [{ status: 'DENSE_MVS' }, { status: 'MESH' }, { status: 'EXPORTING' }, { status: 'COMPLETE' }] });
   await page.goto(`/?source=api&api=${encodeURIComponent(API)}&poll=150`);
   await expect(page.getByTestId('status')).toContainText('Processing');
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'processing');
+  await expect(page.getByRole('progressbar', { name: 'Reconstruction progress' })).toBeVisible();
   await waitReady(page);
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'unvalidated_scale');
   const v = (await viewer(page))!;
   expect(v.loaded!.artifact_id).toBe('synthetic-sample-site-v1');
   await expect(page.locator('p.muted').first()).toContainText('Source: api');
@@ -50,8 +53,18 @@ test('failed job shows its error and no model', async ({ page }) => {
   await mockApi(page, { 'j-bad': [{ status: 'FAILED', error_message: 'dense reconstruction diverged' }] });
   await page.goto(`/?source=api&api=${encodeURIComponent(API)}`);
   await waitPhase(page, 'job-failed');
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'failed');
   await expect(page.getByRole('alert')).toContainText('dense reconstruction diverged');
   expect((await viewer(page))!.loaded).toBeNull();
+  expect(errors).toEqual([]);
+});
+
+test('uploaded and queued jobs show their lifecycle state', async ({ page }) => {
+  const errors = watchErrors(page);
+  await mockApi(page, { 'j-new': [{ status: 'CREATED' }, { status: 'CREATED' }, { status: 'VALIDATING' }, { status: 'VALIDATING' }] });
+  await page.goto(`/?source=api&api=${encodeURIComponent(API)}&poll=400&pollMax=4`);
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'uploaded');
+  await expect(page.getByTestId('lifecycle')).toHaveAttribute('data-state', 'queued', { timeout: 5_000 });
   expect(errors).toEqual([]);
 });
 

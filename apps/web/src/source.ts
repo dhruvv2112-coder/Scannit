@@ -1,7 +1,7 @@
 // XR-002: where scenes come from. Two interchangeable sources:
 //  - fixtures: static JSON next to the app (synthetic sample; offline dev and CI)
 //  - api: Account 2 backend. Routes below are a PROPOSAL (PR #3 currently exposes only /healthz);
-//    see docs/xr/manifest-proposal.md. Polling is bounded and cancellable.
+//    see docs/xr/manifest-adapter.md. Polling is bounded and cancellable.
 
 export type JobStatus =
   | 'CREATED' | 'VALIDATING' | 'INGESTING' | 'POSE_ESTIMATION' | 'DENSE_MVS' | 'MESH' | 'MATERIALS'

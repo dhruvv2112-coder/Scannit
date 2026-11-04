@@ -1,14 +1,15 @@
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { Grid, Line, OrbitControls } from '@react-three/drei';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Box3, BoxHelper, Group, Matrix4, PerspectiveCamera, Vector3, type Object3D } from 'three';
+import { Box3, BoxHelper, Group, Matrix4, PerspectiveCamera, Vector3, type Material, type Mesh, type Object3D, type Points, type PointsMaterial, type Texture } from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import { parseManifest, resolveArtifactUrl, type ArtifactManifest } from './manifest';
 import { ArtifactError, fmtBytes, loadVerifiedGlb } from './loader';
 import { pollUntilTerminal, sourceFromLocation, type DataSource, type SceneEntry } from './source';
-import { matrixFromRowMajor, toFrame } from './frames';
-import { distanceM, fmtM, fmtVec, makePoint, snapToFaceVertex, type PickedPoint } from './measure';
+import { VIEW_TO_SCENE, isIdentity, placementMatrix, toFrame } from './frames';
+import { distanceM, fmtLength, fmtVec, makePoint, snapToFaceVertex, type PickedPoint } from './measure';
+import { LIFECYCLE_LABEL, lifecycleFromJob, lifecycleWhenLoaded, type Lifecycle } from './lifecycle';
 import { inspect, type IntegrityReport } from './integrity';
 import { checkReferenceScale } from './scale';
 
@@ -19,13 +20,14 @@ type Phase =
   | { k: 'artifact-loading'; loaded: number; total: number | null } | { k: 'artifact-error'; kind: string; msg: string }
   | { k: 'ready' };
 
-interface Loaded { manifest: ArtifactManifest; manifestUrl: string; artifactUrl: string; sha256: string; bytes: number; root: Group; report: IntegrityReport; warnings: string[]; toTarget: Matrix4 }
+interface Loaded { manifest: ArtifactManifest; manifestUrl: string; artifactUrl: string; sha256: string; bytes: number; root: Group; report: IntegrityReport; warnings: string[]; notes: string[]; placed: boolean; sourceImages: number | null; toTarget: Matrix4 }
 interface Stats { fps: number; tris: number; calls: number; camTarget: string }
 
 declare global {
   interface Window {
     __viewer?: {
-      phase: string; ready: boolean; error: string | null; stats: Stats; loaded: { artifact_id: string; sha256: string; scale_status: string; issues: string[]; refOk: boolean | null } | null;
+      phase: string; lifecycle: Lifecycle | null; ready: boolean; error: string | null; stats: Stats;
+      loaded: { artifact_id: string; sha256: string; scale_status: string; origin: string; issues: string[]; notes: string[]; warnings: string[]; refOk: boolean | null; points: number; triangles: number; sourceImages: number | null; placed: boolean } | null;
       measurement: { points: number[][]; distance_m: number | null; snapped: boolean[] }; selected: string | null; mode: string; resets: number;
       project: (viewerXYZ: number[]) => { x: number; y: number } | null; refEndpointsViewer: number[][];
       /** Test/debug hook: frame the camera on a viewer-space box (camera only). */
@@ -37,6 +39,39 @@ declare global {
 const q = new URLSearchParams(location.search);
 const POLL_MS = Number(q.get('poll') ?? 5000);
 const POLL_MAX = Number(q.get('pollMax') ?? 120);
+const VIEW_TO_SCENE_M = VIEW_TO_SCENE();
+
+/** Free GPU memory held by a replaced scene. */
+export function disposeTree(root: Object3D) {
+  root.traverse((o) => {
+    const m = o as Mesh;
+    m.geometry?.dispose?.();
+    const mats = (Array.isArray(m.material) ? m.material : m.material ? [m.material] : []) as (Material & Record<string, unknown>)[];
+    for (const mat of mats) {
+      for (const v of Object.values(mat)) if ((v as Texture)?.isTexture) (v as Texture).dispose();
+      mat.dispose();
+    }
+  });
+}
+
+async function countSourceImages(manifest: ArtifactManifest, manifestUrl: string, signal: AbortSignal): Promise<number | null> {
+  if (!manifest.source_image_manifest_uri) return null;
+  try {
+    const res = await fetch(resolveArtifactUrl(manifest.source_image_manifest_uri, manifestUrl), { signal });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { frames?: unknown[]; summary?: { frames_kept?: number } };
+    return Array.isArray(j.frames) ? j.frames.length : typeof j.summary?.frames_kept === 'number' ? j.summary.frames_kept : null;
+  } catch { return null; }
+}
+
+function PointsPicking({ box }: { box: Box3 | null }) {
+  const { raycaster } = useThree();
+  useEffect(() => {
+    const d = box && !box.isEmpty() ? box.getSize(new Vector3()).length() : 10;
+    raycaster.params.Points = { threshold: Math.max(d * 0.002, 0.005) };
+  }, [box, raycaster]);
+  return null;
+}
 
 function CameraRig({ controls, frameKey, box, viewDir, onProject, fly }: { controls: React.RefObject<OrbitControlsImpl | null>; frameKey: number; box: Box3 | null; viewDir: Vector3 | null; onProject: (f: (p: number[]) => { x: number; y: number } | null) => void; fly: boolean }) {
   const { camera, gl, size } = useThree();
@@ -137,7 +172,7 @@ export default function App() {
     const entry0 = scenes.find((s) => s.id === selectedId); if (!entry0) return;
     loadAbort.current?.abort();
     const ac = new AbortController(); loadAbort.current = ac;
-    setLoaded(null); setPoints([]); setSelected(null);
+    setLoaded((prev) => { if (prev) disposeTree(prev.root); return null; }); setPoints([]); setSelected(null);
     (async () => {
       let entry = entry0;
       if (entry.job && !entry.manifestUrl) {
@@ -152,14 +187,14 @@ export default function App() {
       }
       const manifestUrl = entry.manifestUrl!;
       setPhase({ k: 'manifest-loading' });
-      let manifest: ArtifactManifest, warnings: string[], artifactUrl: string;
+      let manifest: ArtifactManifest, warnings: string[], notes: string[], artifactUrl: string;
       try {
         const res = await fetch(manifestUrl, { signal: ac.signal, headers: { accept: 'application/json' } });
         if (res.status === 404) throw new Error('artifact manifest not found (HTTP 404): the job has no viewer artifact yet');
         if (!res.ok) throw new Error(`HTTP ${res.status} fetching manifest`);
         const pr = parseManifest(await res.json().catch(() => { throw new Error('manifest is not valid JSON'); }));
         if (!pr.ok) { setPhase({ k: 'manifest-error', msg: pr.errors }); return; }
-        manifest = pr.manifest; warnings = pr.warnings;
+        manifest = pr.manifest; warnings = [...pr.manifest.producer_warnings, ...pr.warnings]; notes = pr.notes;
         artifactUrl = resolveArtifactUrl(manifest.uri, manifestUrl);
       } catch (e) {
         if (ac.signal.aborted) return;
@@ -173,9 +208,17 @@ export default function App() {
           onProgress: (l, t) => { const now = performance.now(); if (now - last > 100) { last = now; setPhase({ k: 'artifact-loading', loaded: l, total: t ?? manifest.byte_size ?? null }); } },
         });
         const gltf = await new Promise<{ scene: Group }>((ok, fail) => new GLTFLoader().parse(bytes, '', ok as never, (err) => fail(new ArtifactError('parse', `GLB could not be parsed: ${(err as unknown as Error)?.message ?? String(err)}`))));
-        if (ac.signal.aborted) return;
-        const report = inspect(gltf.scene, manifest);
-        setLoaded({ manifest, manifestUrl, artifactUrl, sha256, bytes: bytes.byteLength, root: gltf.scene, report, warnings, toTarget: matrixFromRowMajor(manifest.transform_4x4) });
+        if (ac.signal.aborted) { disposeTree(gltf.scene); return; }
+        const root = gltf.scene;
+        // Place the GLB from manifest evidence only (identity for the standard Z-up -> Y-up export).
+        const place = placementMatrix(manifest.glb_to_scene);
+        const placed = !isIdentity(place);
+        if (placed) { root.matrixAutoUpdate = false; root.matrix.copy(place); notes.push('manifest transform is not the standard Z-up/Y-up pair: GLB placed with it'); }
+        root.traverse((o) => { if ((o as Points).isPoints) { const pm = (o as Points).material as PointsMaterial; pm.size = 2; pm.sizeAttenuation = false; } });
+        const report = inspect(root, manifest);
+        const sourceImages = await countSourceImages(manifest, manifestUrl, ac.signal);
+        if (ac.signal.aborted) { disposeTree(root); return; }
+        setLoaded({ manifest, manifestUrl, artifactUrl, sha256, bytes: bytes.byteLength, root, report, warnings, notes, placed, sourceImages, toTarget: VIEW_TO_SCENE_M });
         setPhase({ k: 'ready' }); setFrameKey((k) => k + 1);
       } catch (e) {
         if (ac.signal.aborted) return;
@@ -187,11 +230,7 @@ export default function App() {
   }, [selectedId, source]);
 
   const box = useMemo(() => (loaded ? new Box3().setFromObject(loaded.root) : null), [loaded]);
-  const refEndpointsViewer = useMemo(() => {
-    if (!loaded?.manifest.reference_lengths?.length) return [];
-    const inv = loaded.toTarget.clone().invert();
-    return loaded.manifest.reference_lengths[0].endpoints_m.map((e) => toFrame(e, inv).toArray());
-  }, [loaded]);
+  const refEndpointsViewer = useMemo(() => loaded?.report.references[0]?.endpointsWorld ?? [], [loaded]);
   const helper = useMemo(() => (selected ? new BoxHelper(selected, 0xff9a3c) : null), [selected]);
 
   const onPick = (e: ThreeEvent<MouseEvent>) => {
@@ -201,7 +240,7 @@ export default function App() {
     if (mode === 'select') { setSelected(hit.object); return; }
     const r = box ? Math.max(box.getSize(new Vector3()).length() * 0.004, 0.02) : 0.05;
     const s = snap ? snapToFaceVertex(hit, Math.min(r, hit.distance * 0.01 + 0.01)) : { point: hit.point.clone(), snapped: false };
-    const p = { ...makePoint(s.point, loaded.toTarget, s.snapped, hit.object.name || '(unnamed)'), markerR: Math.max(hit.distance * 0.006, 0.004) };
+    const p = { ...makePoint(s.point, loaded.toTarget, s.snapped, hit.object.name || '(unnamed)'), markerR: Math.max(hit.distance * 0.006, 0.004), pointIndex: s.index };
     setPoints((ps) => (ps.length >= 2 ? [p] : [...ps, p]));
   };
 
@@ -224,12 +263,17 @@ export default function App() {
   const distance = points.length === 2 ? distanceM(points[0], points[1]) : null;
   const refOk = loaded ? (loaded.report.references.length ? loaded.report.references.every((r) => r.endpointsOnGeometry === true) : null) : null;
   const nodeRef = loaded ? checkReferenceScale(loaded.root) : null;
+  const lifecycle: Lifecycle | null =
+    phase.k === 'processing' ? lifecycleFromJob(phase.entry.job!.status)
+    : phase.k === 'job-failed' || phase.k === 'manifest-error' || phase.k === 'artifact-error' || phase.k === 'scenes-error' ? 'failed'
+    : phase.k === 'ready' && loaded ? lifecycleWhenLoaded(loaded.manifest.scale_status, loaded.report.issues.length)
+    : phase.k === 'manifest-loading' || phase.k === 'artifact-loading' ? 'processing' : null;
   const errorText = phase.k === 'scenes-error' ? phase.msg : phase.k === 'manifest-error' ? phase.msg.join('; ') : phase.k === 'artifact-error' ? `${phase.kind}: ${phase.msg}` : phase.k === 'job-failed' ? `job ${phase.entry.job?.status}` : null;
 
   useEffect(() => {
     window.__viewer = {
-      phase: phase.k, ready: phase.k === 'ready', error: errorText, stats,
-      loaded: loaded ? { artifact_id: loaded.manifest.artifact_id, sha256: loaded.sha256, scale_status: loaded.manifest.scale_status, issues: loaded.report.issues, refOk } : null,
+      phase: phase.k, lifecycle, ready: phase.k === 'ready', error: errorText, stats,
+      loaded: loaded ? { artifact_id: loaded.manifest.artifact_id, sha256: loaded.sha256, scale_status: loaded.manifest.scale_status, origin: loaded.manifest.artifact_origin, issues: loaded.report.issues, notes: loaded.notes, warnings: loaded.warnings, refOk, points: loaded.report.pointCount, triangles: loaded.report.triangleCount, sourceImages: loaded.sourceImages, placed: loaded.placed } : null,
       measurement: { points: points.map((p) => p.target.toArray()), distance_m: distance, snapped: points.map((p) => p.snapped) },
       selected: selected?.name ?? null, mode, resets: resets.current,
       project: (p) => projectRef.current(p), refEndpointsViewer,
@@ -257,6 +301,7 @@ export default function App() {
         {points.length === 2 && <Line points={[points[0].viewer, points[1].viewer]} color="#ff9a3c" lineWidth={2} depthTest={false} renderOrder={9} />}
         <OrbitControls ref={controls} makeDefault enableDamping={false} />
         <CameraRig controls={controls} frameKey={frameKey} box={focusBox ?? box} viewDir={viewDir} fly={fly} onProject={(f) => { projectRef.current = f; }} />
+        <PointsPicking box={box} />
         <Probe controls={controls} toTarget={loaded?.toTarget ?? null} onStats={setStats} />
       </Canvas>
 
@@ -269,6 +314,17 @@ export default function App() {
         </label>
         <p className="muted">Source: {source instanceof Error ? 'misconfigured' : source.kind}</p>
 
+        {lifecycle && (
+          <div className={`lifecycle lc-${lifecycle}`} role="status" data-testid="lifecycle" data-state={lifecycle}>
+            <span>{LIFECYCLE_LABEL[lifecycle]}</span>
+            {lifecycle === 'processing' && phase.k === 'processing' && phase.entry.job?.progress_pct != null && (
+              <progress max={100} value={phase.entry.job.progress_pct} aria-label="Reconstruction progress" />
+            )}
+            {phase.k === 'artifact-loading' && (
+              <progress max={phase.total ?? undefined} value={phase.total ? phase.loaded : undefined} aria-label="Model download progress" />
+            )}
+          </div>
+        )}
         <Status phase={phase} onRetry={() => (phase.k === 'scenes-error' || phase.k === 'no-scenes' ? loadScenes() : setSelectedId((id) => { setTimeout(() => setSelectedId(id), 0); return null; }))} onCancel={() => loadAbort.current?.abort()} />
 
         {loaded && (
@@ -279,11 +335,13 @@ export default function App() {
             <dl>
               <dt>Artifact</dt><dd data-testid="artifact-id">{loaded.manifest.artifact_id}</dd>
               <dt>sha256</dt><dd data-testid="artifact-sha" title={loaded.sha256}>{loaded.sha256.slice(0, 12)}… ✓</dd>
+              <dt>Origin</dt><dd data-testid="origin" className={loaded.manifest.artifact_origin === 'camera' ? '' : 'warnText'}>{loaded.manifest.artifact_origin === 'camera' ? 'camera-derived' : loaded.manifest.artifact_origin}{loaded.manifest.artifact_type ? ` · ${loaded.manifest.artifact_type}` : ''}</dd>
+              <dt>Source images</dt><dd data-testid="source-images">{loaded.sourceImages ?? 'unknown'}</dd>
               <dt>Dataset · job</dt><dd>{loaded.manifest.dataset_id ?? '—'} · {loaded.manifest.job_id ?? '—'}</dd>
-              <dt>Frames</dt><dd>{loaded.manifest.source_frame_id} → {loaded.manifest.target_frame_id}</dd>
-              <dt>Units</dt><dd>meters (as delivered, not rescaled)</dd>
-              <dt>Size</dt><dd>{fmtBytes(loaded.bytes)} · {loaded.report.vertexCount.toLocaleString()} vertices</dd>
-              <dt>Target</dt><dd data-testid="cam">{stats.camTarget} m</dd>
+              <dt>Transform</dt><dd data-testid="transform">{loaded.manifest.source_frame_id} → {loaded.manifest.target_frame_id} (row-major 4×4; GLB frame {loaded.manifest.glb_frame_id})</dd>
+              <dt>Units</dt><dd>{loaded.manifest.scale_status === 'arbitrary' ? "model units (labelled 'm', scale arbitrary)" : 'meters (as delivered, not rescaled)'}</dd>
+              <dt>Geometry</dt><dd>{fmtBytes(loaded.bytes)} · {loaded.report.triangleCount ? `${Math.round(loaded.report.triangleCount).toLocaleString()} triangles` : ''}{loaded.report.pointCount ? `${loaded.report.pointCount.toLocaleString()} points` : ''}</dd>
+              <dt>Target</dt><dd data-testid="cam">{stats.camTarget} {loaded.manifest.scale_status === 'arbitrary' ? 'model units' : 'm'} ({loaded.manifest.scene_frame_id})</dd>
               <dt>FPS · tris</dt><dd>{stats.fps} · {stats.tris.toLocaleString()}</dd>
               <dt>Reference</dt>
               <dd data-testid="scale" className={refOk ? 'ok' : refOk === false ? 'bad' : ''}>
@@ -292,6 +350,7 @@ export default function App() {
                   : nodeRef?.found ? `${nodeRef.measured_m!.toFixed(3)} m` : 'none in manifest'}
               </dd>
             </dl>
+            {loaded.notes.length > 0 && <ul className="notes" data-testid="notes">{loaded.notes.map((n) => <li key={n}>{n}</li>)}</ul>}
             {[...loaded.warnings, ...loaded.report.issues].length > 0 && (
               <ul className="warnings" data-testid="warnings">{[...loaded.warnings, ...loaded.report.issues].map((w) => <li key={w}>{w}</li>)}</ul>
             )}
@@ -305,8 +364,8 @@ export default function App() {
               <div className="measure" data-testid="measure">
                 <label><input type="checkbox" checked={snap} onChange={(e) => setSnap(e.target.checked)} /> Snap to vertices</label>
                 <p>{points.length === 0 ? 'Click the first point.' : points.length === 1 ? 'Click the second point.' : null}</p>
-                {distance !== null && <p className="dist" data-testid="distance">{fmtM(distance)}{!validated && <span className="muted"> (not validated)</span>}</p>}
-                {points.map((p, i) => <p key={i} className="muted">P{i + 1} {fmtVec(p.target)} m in {loaded.manifest.target_frame_id}{p.snapped ? ' · snapped' : ''}</p>)}
+                {distance !== null && <p className="dist" data-testid="distance">{fmtLength(distance, loaded.manifest.scale_status)}{!validated && <span className="muted"> ({loaded.manifest.scale_status === 'arbitrary' ? 'arbitrary scale — not a physical length' : 'not validated'})</span>}</p>}
+                {points.map((p, i) => <p key={i} className="muted">P{i + 1} {fmtVec(p.target)} in {loaded.manifest.scene_frame_id}{p.snapped ? ' · snapped' : ''}{p.pointIndex != null ? ` · point #${p.pointIndex}` : ''}</p>)}
               </div>
             )}
             {selected && mode === 'select' && <p data-testid="selected">Selected: {selected.name || '(unnamed)'}</p>}
