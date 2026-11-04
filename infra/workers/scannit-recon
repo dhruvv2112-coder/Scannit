@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Entry point for account2's orchestrator: SCANNIT_RECON_CLI=<repo>/infra/workers/scannit-recon
+set -euo pipefail
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+export PYTHONPATH="$ROOT/packages/reconstruction-core/src:$ROOT/pipelines${PYTHONPATH:+:$PYTHONPATH}"
+exec "${SCANNIT_PYTHON:-python3}" -m photogrammetry.cli "$@"

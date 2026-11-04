@@ -8,7 +8,7 @@ RECON_SMOKE := $(RECON_WORK)/smoke
 RECON_LINT_PATHS := pipelines packages/reconstruction-core tests/reconstruction
 RUFF_ARGS := --line-length 120 --target-version py311
 
-.PHONY: help recon-fixture recon-test recon-smoke recon-report recon-lint recon-ci
+.PHONY: help recon-fixture recon-test recon-smoke recon-report recon-lint recon-run recon-ci
 help:
 	@grep -E '^[a-z-]+:' Makefile | cut -d: -f1
 
@@ -30,5 +30,9 @@ recon-smoke: recon-fixture
 recon-report:
 	@test -s $(RECON_SMOKE)/manifest.json || (echo "run 'make recon-smoke' first" && exit 1)
 	PYTHONPATH=$(RECON_PATH) $(PY) -m recon_core.report $(RECON_SMOKE)/manifest.json --job-id smoke --out $(RECON_SMOKE)/quality_report.json
+
+# make recon-run INPUT=path/to/images [OUTPUT=work/recon/run] [ARGS=--synthetic]
+recon-run:
+	PYTHONPATH=$(RECON_PATH) $(PY) -m photogrammetry.run --input $(INPUT) --output $(or $(OUTPUT),$(RECON_WORK)/run) $(ARGS)
 
 recon-ci: recon-lint recon-test recon-smoke recon-report
