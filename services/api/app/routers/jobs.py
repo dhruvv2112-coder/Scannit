@@ -12,12 +12,15 @@ Endpoints:
 from __future__ import annotations
 
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.storage import store
+from app.core.database import get_session
+from app.core import repository
 from scannit_schemas.enums import JobStatus
 from scannit_schemas.models import JobCreate
 
@@ -33,37 +36,50 @@ class JobStatusUpdate(BaseModel):
     status: str = Field(..., description="New job status (must be a valid JobStatus value)")
     progress_pct: float = Field(default=0.0, ge=0.0, le=100.0)
     error_message: str | None = None
+    # Optional geometry/scale fields the worker can report
+    scale_status: str | None = None
+    reference_lengths: dict[str, Any] | None = None
+    transform_bounds: dict[str, Any] | None = None
+    source_evidence: dict[str, Any] | None = None
 
 
 # --- Endpoints ---
 
 
 @router.post("/jobs", status_code=status.HTTP_201_CREATED)
-async def create_job(body: JobCreate) -> dict:
-    if store.get_project(body.project_id) is None:
+async def create_job(
+    body: JobCreate,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    if await repository.get_project(session, body.project_id) is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    if store.get_dataset(body.dataset_id) is None:
+    if await repository.get_dataset(session, body.dataset_id) is None:
         raise HTTPException(status_code=404, detail="Dataset not found")
-    job = store.create_job(
+    job = await repository.create_job(
+        session,
         project_id=body.project_id,
         dataset_id=body.dataset_id,
         config=body.config,
     )
-    if job is None:
-        raise HTTPException(status_code=500, detail="Job creation failed")
     return _serialize(job)
 
 
 @router.get("/jobs/{job_id}")
-async def get_job(job_id: uuid.UUID) -> dict:
-    job = store.get_job(job_id)
+async def get_job(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    job = await repository.get_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return _serialize(job)
 
 
 @router.post("/jobs/{job_id}/submit", status_code=status.HTTP_202_ACCEPTED)
-async def submit_job(job_id: uuid.UUID) -> dict:
+async def submit_job(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
     """Dispatch a CREATED job to the Celery reconstruction worker.
 
     The actual Celery import is deferred so the API can run without
@@ -71,7 +87,7 @@ async def submit_job(job_id: uuid.UUID) -> dict:
     available, the endpoint returns the job marked as submitted but
     the task is not dispatched — CI and unit tests rely on this.
     """
-    job = store.get_job(job_id)
+    job = await repository.get_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -95,16 +111,15 @@ async def submit_job(job_id: uuid.UUID) -> dict:
         celery_task_id = result.id
     except ImportError:
         # Celery/orchestrator not installed — mark as submitted anyway
-        # This allows the API to work independently for testing
         pass
 
     # Update job to indicate it's been submitted
     updates: dict[str, Any] = {"status": JobStatus.VALIDATING}
     if celery_task_id:
         updates["celery_task_id"] = celery_task_id
-    store.update_job(job_id, **updates)
+    await repository.update_job(session, job_id, **updates)
 
-    job = store.get_job(job_id)
+    job = await repository.get_job(session, job_id)
     response = _serialize(job)  # type: ignore[arg-type]
     if celery_task_id:
         response["celery_task_id"] = celery_task_id
@@ -112,9 +127,12 @@ async def submit_job(job_id: uuid.UUID) -> dict:
 
 
 @router.patch("/jobs/{job_id}/cancel")
-async def cancel_job(job_id: uuid.UUID) -> dict:
+async def cancel_job(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
     """Request cancellation of a running job."""
-    job = store.get_job(job_id)
+    job = await repository.get_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -130,23 +148,26 @@ async def cancel_job(job_id: uuid.UUID) -> dict:
     if celery_task_id:
         try:
             from app.celery_app import celery  # type: ignore[import-not-found]
-
             celery.control.revoke(celery_task_id, terminate=True)
         except ImportError:
             pass
 
-    store.update_job(job_id, status=JobStatus.CANCELLED)
-    return _serialize(store.get_job(job_id))  # type: ignore[arg-type]
+    updated = await repository.update_job(session, job_id, status=JobStatus.CANCELLED)
+    return _serialize(updated)  # type: ignore[arg-type]
 
 
 @router.patch("/jobs/{job_id}/status")
-async def update_job_status(job_id: uuid.UUID, body: JobStatusUpdate) -> dict:
-    """Worker callback endpoint — updates job status and progress.
+async def update_job_status(
+    job_id: uuid.UUID,
+    body: JobStatusUpdate,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Worker callback endpoint — updates job status, progress, and geometry metadata.
 
     This is called by the orchestrator worker to report stage transitions.
     The status value must be a valid JobStatus enum member.
     """
-    job = store.get_job(job_id)
+    job = await repository.get_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -166,20 +187,31 @@ async def update_job_status(job_id: uuid.UUID, body: JobStatusUpdate) -> dict:
     if body.error_message is not None:
         updates["error_message"] = body.error_message
     if new_status == JobStatus.COMPLETE:
-        from datetime import UTC, datetime
+        updates["completed_at"] = datetime.now(UTC)
 
-        updates["completed_at"] = datetime.now(UTC).isoformat()
+    # Geometry / scale metadata from the worker
+    if body.scale_status is not None:
+        updates["scale_status"] = body.scale_status
+    if body.reference_lengths is not None:
+        updates["reference_lengths"] = body.reference_lengths
+    if body.transform_bounds is not None:
+        updates["transform_bounds"] = body.transform_bounds
+    if body.source_evidence is not None:
+        updates["source_evidence"] = body.source_evidence
 
-    store.update_job(job_id, **updates)
-    return _serialize(store.get_job(job_id))  # type: ignore[arg-type]
+    updated = await repository.update_job(session, job_id, **updates)
+    return _serialize(updated)  # type: ignore[arg-type]
 
 
 @router.get("/jobs/{job_id}/artifacts")
-async def list_job_artifacts(job_id: uuid.UUID) -> list[dict]:
-    job = store.get_job(job_id)
+async def list_job_artifacts(
+    job_id: uuid.UUID,
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    job = await repository.get_job(session, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
-    return [_serialize(a) for a in store.list_artifacts(job_id)]
+    return [_serialize(a) for a in await repository.list_artifacts(session, job_id)]
 
 
 def _serialize(obj: dict) -> dict:
@@ -188,6 +220,8 @@ def _serialize(obj: dict) -> dict:
     for k, v in obj.items():
         if isinstance(v, uuid.UUID):
             result[k] = str(v)
+        elif isinstance(v, datetime):
+            result[k] = v.isoformat()
         else:
             result[k] = v
     return result

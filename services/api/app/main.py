@@ -7,14 +7,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import health, jobs, projects
+from app.core.database import engine
+from app.models.base import Base
+from app.routers import artifacts, health, jobs, projects
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Startup: initialise DB pool, Redis, S3 client
+    # Startup: create tables (dev convenience — production uses Alembic)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
-    # Shutdown: close connections
+    # Shutdown: dispose engine
+    await engine.dispose()
 
 
 app = FastAPI(
@@ -35,3 +40,4 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
+app.include_router(artifacts.router)
