@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/transform.schema.json",
+  "title": "Transform",
+  "description": "Similarity transform: p_to = scale * R(rotation_wxyz) * p_from + translation_m.",
+  "type": "object",
+  "required": ["schema_version", "from_frame", "to_frame", "rotation_wxyz", "translation_m", "scale"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "from_frame": { "$ref": "common.schema.json#/$defs/Id" },
+    "to_frame": { "$ref": "common.schema.json#/$defs/Id" },
+    "rotation_wxyz": { "$ref": "common.schema.json#/$defs/QuaternionWXYZ" },
+    "translation_m": { "$ref": "common.schema.json#/$defs/Vec3" },
+    "scale": { "type": "number", "exclusiveMinimum": 0 },
+    "scale_sigma": { "description": "1-sigma relative scale uncertainty (dimensionless).", "type": "number", "minimum": 0 },
+    "source": { "enum": ["identity", "sfm", "reference_distances", "control_points", "gnss", "manual"] }
+  },
+  "additionalProperties": false
+}

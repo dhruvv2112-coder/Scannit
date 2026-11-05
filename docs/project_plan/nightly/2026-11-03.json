@@ -1,0 +1,22 @@
+{
+  "window_ist": "2026-11-03T00:00+05:30 / 2026-11-03T08:00+05:30",
+  "merged_prs": [],
+  "unmerged_prs": [
+    {
+      "branch": "feat/platform/PLT-001-monorepo-skeleton",
+      "title": "PLT-001/002/007: Monorepo skeleton, shared schemas, project planner",
+      "tickets": ["PLT-001", "PLT-002", "PLT-007"]
+    }
+  ],
+  "ci_failures": [],
+  "features_done": [],
+  "features_in_review": ["PLT-001", "PLT-002", "PLT-007"],
+  "blocked_features": [],
+  "evidence_gaps": [
+    "PLT-001: docker compose config not runnable in build env — will validate in CI",
+    "PLT-001: ruff lint not runnable locally — will pass in GitHub Actions"
+  ],
+  "schedule_risk": "LOW — Night 1 deliverables complete; on track for Night 2 API work",
+  "next_critical_path": ["Push PR", "PLT-003 Project/Dataset API", "PLT-004 design"],
+  "sheet_sync_status": "NOT_CONNECTED"
+}

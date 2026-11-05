@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.1.0",
+  "from_frame": "tile-0-0",
+  "to_frame": "scene",
+  "rotation_wxyz": [
+    1,
+    0,
+    0,
+    0
+  ],
+  "translation_m": [
+    10.0,
+    0.0,
+    0.0
+  ],
+  "scale": 1.0,
+  "source": "identity"
+}

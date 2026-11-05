@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/common.schema.json",
+  "title": "Common definitions",
+  "description": "Shared building blocks. Lengths are meters unless the field name ends in _mm or _px.",
+  "$defs": {
+    "SchemaVersion": { "type": "string", "pattern": "^0\\.[0-9]+\\.[0-9]+$" },
+    "Id": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$" },
+    "Timestamp": { "type": "string", "format": "date-time" },
+    "Vec3": { "type": "array", "items": { "type": "number" }, "minItems": 3, "maxItems": 3 },
+    "QuaternionWXYZ": {
+      "description": "Unit quaternion [w, x, y, z].",
+      "type": "array", "items": { "type": "number" }, "minItems": 4, "maxItems": 4
+    },
+    "Checksum": {
+      "type": "object",
+      "required": ["algorithm", "value"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "value": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "Uri": {
+      "description": "Object-storage or relative artifact path. No credentials, no query strings.",
+      "type": "string", "pattern": "^(s3://|gs://|file://|[A-Za-z0-9._/-])[^?#\\s]*$", "maxLength": 1024
+    },
+    "BoundingBox": {
+      "description": "Axis-aligned box in the stated frame, meters.",
+      "type": "object",
+      "required": ["frame_id", "min_m", "max_m"],
+      "properties": {
+        "frame_id": { "$ref": "#/$defs/Id" },
+        "min_m": { "$ref": "#/$defs/Vec3" },
+        "max_m": { "$ref": "#/$defs/Vec3" }
+      },
+      "additionalProperties": false
+    },
+    "CoordinateFrame": {
+      "type": "object",
+      "required": ["frame_id", "units", "handedness", "up_axis", "axes", "origin_description"],
+      "properties": {
+        "frame_id": { "$ref": "#/$defs/Id" },
+        "units": { "const": "m" },
+        "handedness": { "const": "right" },
+        "up_axis": { "enum": ["+Z", "+Y", "-Y"] },
+        "axes": {
+          "description": "Meaning of X,Y,Z. ENU for georeferenced scene frames; OPENCV_CAMERA = X right, Y down, Z forward.",
+          "enum": ["ENU", "LOCAL_ZUP", "OPENCV_CAMERA", "GLTF_YUP"]
+        },
+        "origin_description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "crs": { "description": "EPSG code when georeferenced, e.g. EPSG:4979.", "type": "string", "pattern": "^EPSG:[0-9]+$" },
+        "origin_wgs84": {
+          "type": "object",
+          "required": ["lat_deg", "lon_deg", "h_m"],
+          "properties": {
+            "lat_deg": { "type": "number", "minimum": -90, "maximum": 90 },
+            "lon_deg": { "type": "number", "minimum": -180, "maximum": 180 },
+            "h_m": { "type": "number" }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "ScaleStatus": {
+      "description": "arbitrary = no metric reference (never present as true scale); metric_unvalidated = scaled without independent checkpoints; metric_validated = scaled and checkpoint errors reported.",
+      "enum": ["arbitrary", "metric_unvalidated", "metric_validated"]
+    },
+    "Provenance": {
+      "type": "object",
+      "required": ["job_id", "stage", "tool", "tool_version"],
+      "properties": {
+        "job_id": { "$ref": "#/$defs/Id" },
+        "stage": { "type": "string" },
+        "tool": { "type": "string" },
+        "tool_version": { "type": "string" },
+        "source_checksums": { "type": "array", "items": { "$ref": "#/$defs/Checksum" } },
+        "created_at": { "$ref": "#/$defs/Timestamp" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

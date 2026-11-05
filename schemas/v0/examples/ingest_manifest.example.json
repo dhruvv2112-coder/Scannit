@@ -1,0 +1,48 @@
+{
+  "schema_version": "0.1.0",
+  "options": {
+    "frame_interval_s": 0.5
+  },
+  "sources": [
+    {
+      "source_id": "src-000",
+      "name": "IMG_0001.jpg",
+      "kind": "image",
+      "bytes": 2048000,
+      "checksum": {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "status": "accepted"
+    }
+  ],
+  "frames": [
+    {
+      "frame_id": "f-000000",
+      "source_id": "src-000",
+      "file": "frames/f-000000.jpg",
+      "timestamp_s": null,
+      "width_px": 4032,
+      "height_px": 3024,
+      "checksum": {
+        "algorithm": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "sharpness": 153.2,
+      "dhash": "0f0f0f0f0f0f0f0f",
+      "status": "kept",
+      "exif": {
+        "make": "ExampleCo",
+        "focal_length_mm": 4.2,
+        "orientation": 1
+      }
+    }
+  ],
+  "summary": {
+    "frames_total": 1,
+    "frames_kept": 1,
+    "rejected_blur": 0,
+    "rejected_duplicate": 0,
+    "sources_rejected": 0
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/texture_artifact.schema.json",
+  "title": "TextureArtifact",
+  "type": "object",
+  "required": ["schema_version", "artifact_id", "uri", "media_type", "bytes", "checksum", "width_px", "height_px", "color_space", "color_validation", "provenance"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "artifact_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "uri": { "$ref": "common.schema.json#/$defs/Uri" },
+    "media_type": { "enum": ["image/png", "image/jpeg", "image/ktx2", "image/webp"] },
+    "bytes": { "type": "integer", "minimum": 1 },
+    "checksum": { "$ref": "common.schema.json#/$defs/Checksum" },
+    "width_px": { "type": "integer", "minimum": 1 },
+    "height_px": { "type": "integer", "minimum": 1 },
+    "color_space": { "enum": ["sRGB", "linear-sRGB", "Display-P3", "unknown"] },
+    "color_validation": {
+      "description": "unvalidated unless a colour chart was captured and checked. Colours must not be described as exact otherwise.",
+      "enum": ["unvalidated", "chart_validated"]
+    },
+    "color_delta_e_p95": { "type": "number", "minimum": 0 },
+    "mesh_ids": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } },
+    "provenance": { "$ref": "common.schema.json#/$defs/Provenance" }
+  },
+  "additionalProperties": false
+}
