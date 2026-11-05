@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install ruff
+        run: pip install ruff>=0.5
+      - name: Lint
+        run: ruff check .
+      - name: Format check
+        run: ruff format --check .
+
+  test-json-schemas:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install pytest jsonschema referencing
+          pip install -e "packages/shared-schemas[dev]"
+      - name: Test JSON Schemas (canonical v0) + cross-validation
+        run: pytest tests/schemas -v
+
+  test-pydantic-schemas:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install shared schemas
+        run: pip install -e "packages/shared-schemas[dev]"
+      - name: Test Pydantic models
+        run: pytest packages/shared-schemas/tests -v
+
+  test-api:
+    runs-on: ubuntu-latest
+    needs: [lint, test-pydantic-schemas]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -e "packages/shared-schemas"
+          pip install -e "services/api[dev]"
+      - name: Test API
+        run: pytest services/api/tests -v
+
+  test-orchestrator:
+    runs-on: ubuntu-latest
+    needs: [lint, test-pydantic-schemas]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          pip install -e "packages/shared-schemas[dev]"
+      - name: Test orchestrator (state machine + worker utils)
+        run: pytest services/orchestrator/tests -v
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test-api, test-orchestrator, test-json-schemas, test-pydantic-schemas]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -f services/api/Dockerfile -t scannit-api:ci .
+      - name: Build Orchestrator image
+        run: docker build -f services/orchestrator/Dockerfile -t scannit-orchestrator:ci .

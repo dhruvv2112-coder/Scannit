@@ -1,0 +1,22 @@
+[project]
+name = "scannit-asset-catalog"
+version = "0.1.0"
+description = "Scannit asset and location catalog service"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115,<1",
+    "uvicorn[standard]>=0.30,<1",
+    "pydantic>=2.7,<3",
+    "sqlalchemy[asyncio]>=2.0,<3",
+    "asyncpg>=0.29,<1",
+    "geoalchemy2>=0.15,<1",
+    "boto3>=1.34,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8,<9",
+    "pytest-asyncio>=0.23,<1",
+    "httpx>=0.27,<1",
+    "ruff>=0.5,<1",
+]

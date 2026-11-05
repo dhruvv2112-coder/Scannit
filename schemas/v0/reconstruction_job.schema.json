@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/reconstruction_job.schema.json",
+  "title": "ReconstructionJob",
+  "type": "object",
+  "required": ["schema_version", "job_id", "status", "created_at", "inputs", "options", "scale_reference", "stages"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "job_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "status": { "enum": ["queued", "running", "succeeded", "failed", "cancelled"] },
+    "created_at": { "$ref": "common.schema.json#/$defs/Timestamp" },
+    "inputs": {
+      "type": "array", "minItems": 1, "maxItems": 10000,
+      "items": {
+        "type": "object",
+        "required": ["uri", "media_type", "bytes", "checksum"],
+        "properties": {
+          "uri": { "$ref": "common.schema.json#/$defs/Uri" },
+          "media_type": { "enum": ["image/jpeg", "image/png", "image/tiff", "video/mp4", "video/quicktime"] },
+          "bytes": { "type": "integer", "minimum": 1 },
+          "checksum": { "$ref": "common.schema.json#/$defs/Checksum" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "options": {
+      "type": "object",
+      "properties": {
+        "frame_interval_s": { "type": "number", "exclusiveMinimum": 0, "default": 0.5 },
+        "max_frames": { "type": "integer", "minimum": 2, "maximum": 20000, "default": 2000 },
+        "blur_threshold": { "description": "Minimum variance of Laplacian on the analysis-resolution grayscale frame.", "type": "number", "minimum": 0, "default": 60 },
+        "dedupe_max_hamming": { "description": "Frames whose 64-bit dHash differs by <= this many bits from a kept frame are rejected.", "type": "integer", "minimum": 0, "maximum": 64, "default": 4 },
+        "camera_model": { "enum": ["SIMPLE_RADIAL", "OPENCV", "OPENCV_FISHEYE"], "default": "OPENCV" },
+        "dense": { "type": "boolean", "default": true },
+        "tile_target_faces": { "type": "integer", "minimum": 1000, "default": 500000 }
+      },
+      "additionalProperties": false
+    },
+    "scale_reference": {
+      "description": "type=none forces scale_status=arbitrary on every output.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["none", "distances", "control_points"] },
+        "distances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "point_a", "point_b", "length_m", "role"],
+            "properties": {
+              "id": { "$ref": "common.schema.json#/$defs/Id" },
+              "point_a": { "type": "string" },
+              "point_b": { "type": "string" },
+              "length_m": { "type": "number", "exclusiveMinimum": 0 },
+              "sigma_mm": { "type": "number", "minimum": 0 },
+              "role": { "enum": ["control", "checkpoint"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "control_points": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "position_m", "role"],
+            "properties": {
+              "id": { "$ref": "common.schema.json#/$defs/Id" },
+              "position_m": { "$ref": "common.schema.json#/$defs/Vec3" },
+              "sigma_mm": { "type": "number", "minimum": 0 },
+              "role": { "enum": ["control", "checkpoint"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "frame": { "$ref": "common.schema.json#/$defs/CoordinateFrame" }
+      },
+      "additionalProperties": false
+    },
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "status", "attempt"],
+        "properties": {
+          "name": { "enum": ["ingest", "features", "matching", "sparse", "scale", "dense", "mesh", "texture", "tiling", "report"] },
+          "status": { "enum": ["pending", "running", "succeeded", "failed", "skipped"] },
+          "attempt": { "type": "integer", "minimum": 0 },
+          "started_at": { "$ref": "common.schema.json#/$defs/Timestamp" },
+          "finished_at": { "$ref": "common.schema.json#/$defs/Timestamp" },
+          "error": {
+            "type": "object",
+            "required": ["class", "message"],
+            "properties": {
+              "class": { "enum": ["input_invalid", "input_too_large", "insufficient_overlap", "registration_failed", "no_scale_reference", "tool_crash", "timeout", "out_of_memory", "storage", "internal"] },
+              "message": { "type": "string", "maxLength": 2000 },
+              "retryable": { "type": "boolean" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "artifacts_uri": { "$ref": "common.schema.json#/$defs/Uri" }
+  },
+  "additionalProperties": false
+}

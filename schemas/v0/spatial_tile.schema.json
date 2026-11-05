@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.scannit.invalid/v0/spatial_tile.schema.json",
+  "title": "SpatialTile",
+  "description": "Node in the hierarchical tile tree. transform maps tile-local coordinates into the scene frame.",
+  "type": "object",
+  "required": ["schema_version", "tile_id", "job_id", "level", "bbox", "transform", "geometric_error_m", "content", "children"],
+  "properties": {
+    "schema_version": { "$ref": "common.schema.json#/$defs/SchemaVersion" },
+    "tile_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "job_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "parent_id": { "$ref": "common.schema.json#/$defs/Id" },
+    "level": { "type": "integer", "minimum": 0, "description": "0 = root (coarsest)." },
+    "bbox": { "$ref": "common.schema.json#/$defs/BoundingBox" },
+    "transform": { "$ref": "transform.schema.json" },
+    "geometric_error_m": { "type": "number", "minimum": 0 },
+    "content": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifact_id", "uri", "media_type"],
+        "properties": {
+          "artifact_id": { "$ref": "common.schema.json#/$defs/Id" },
+          "uri": { "$ref": "common.schema.json#/$defs/Uri" },
+          "media_type": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "children": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/Id" } }
+  },
+  "additionalProperties": false
+}

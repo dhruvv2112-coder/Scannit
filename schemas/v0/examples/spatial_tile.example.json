@@ -1,0 +1,47 @@
+{
+  "schema_version": "0.1.0",
+  "tile_id": "tile-0-0",
+  "job_id": "job-0001",
+  "parent_id": "root",
+  "level": 1,
+  "bbox": {
+    "frame_id": "scene",
+    "min_m": [
+      0,
+      0,
+      0
+    ],
+    "max_m": [
+      20.5,
+      12.0,
+      6.2
+    ]
+  },
+  "transform": {
+    "schema_version": "0.1.0",
+    "from_frame": "tile-0-0",
+    "to_frame": "scene",
+    "rotation_wxyz": [
+      1,
+      0,
+      0,
+      0
+    ],
+    "translation_m": [
+      10.0,
+      0.0,
+      0.0
+    ],
+    "scale": 1.0,
+    "source": "identity"
+  },
+  "geometric_error_m": 0.05,
+  "content": [
+    {
+      "artifact_id": "mesh-0001-lod0",
+      "uri": "jobs/job-0001/mesh/lod0.ply",
+      "media_type": "model/ply"
+    }
+  ],
+  "children": []
+}
