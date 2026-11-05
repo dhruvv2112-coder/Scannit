@@ -1,0 +1,19 @@
+:root { color-scheme: dark; font-family: ui-monospace, 'JetBrains Mono', Menlo, monospace; }
+html, body, #root, .root { margin: 0; height: 100%; background: #14171c; color: #d8dee6; }
+.root { position: relative; }
+.hud {
+  position: absolute; top: 12px; left: 12px; max-width: min(320px, calc(100vw - 24px));
+  background: rgb(14 17 21 / 0.82); border: 1px solid #2c333c; border-radius: 8px; padding: 12px 14px;
+  font-size: 12px; line-height: 1.5; backdrop-filter: blur(6px);
+}
+.hud h1 { font-size: 13px; margin: 0 0 8px; font-weight: 600; }
+.hud dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 0 0 8px; }
+.hud dt { color: #8893a0; }
+.hud dd { margin: 0; font-variant-numeric: tabular-nums; }
+.hud .ok { color: #7bd88f; } .hud .bad { color: #ff8a65; }
+.hud .hint, .hud .note { color: #8893a0; margin: 6px 0; }
+.hud kbd { border: 1px solid #47505c; border-radius: 3px; padding: 0 4px; }
+.hud button {
+  font: inherit; color: inherit; background: #222831; border: 1px solid #47505c; border-radius: 5px; padding: 4px 10px; cursor: pointer;
+}
+.hud button:focus-visible { outline: 2px solid #ff9a3c; outline-offset: 2px; }

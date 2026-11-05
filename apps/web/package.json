@@ -1,0 +1,38 @@
+{
+  "name": "@xr/web",
+  "version": "1.0.0",
+  "description": "XR-001 viewer skeleton",
+  "scripts": {
+    "sample": "node scripts/make-sample-glb.mjs public/samples/sample-site.glb",
+    "dev": "vite",
+    "build": "tsc -p . && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src scripts",
+    "test": "vitest run",
+    "test:e2e": "NODE_PATH=./node_modules playwright test"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@react-three/drei": "^10.7.9",
+    "@react-three/fiber": "^9.8.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "eslint": "^10.14.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
+  },
+  "private": true,
+  "type": "module"
+}
