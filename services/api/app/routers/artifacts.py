@@ -21,6 +21,21 @@ from app.core.s3 import generate_presigned_download_url
 router = APIRouter(prefix="/api/v1", tags=["artifacts"])
 
 
+class ArtifactCreateRequest(BaseModel):
+    """Worker callback payload for registering a produced artifact."""
+    job_id: str
+    stage: str
+    content_hash: str
+    software_version: str = "scannit-recon/0.1.0"
+    transforms: dict = {}
+    units: str = "METRES"
+    coordinate_system: str = "LOCAL"
+    privacy_classification: str = "INTERNAL"
+    fidelity_warnings: list[str] = []
+    s3_key: str
+    byte_size: int
+
+
 class ArtifactManifestResponse(BaseModel):
     """Full artifact manifest including a time-limited download URL."""
     id: str
@@ -37,6 +52,29 @@ class ArtifactManifestResponse(BaseModel):
     byte_size: int
     download_url: str = Field(..., description="Pre-signed GET URL, valid for 1 hour")
     created_at: str
+
+
+@router.post("/artifacts", status_code=201)
+async def create_artifact(
+    body: ArtifactCreateRequest,
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    """Register a new artifact — called by the orchestrator worker after upload."""
+    artifact = await repository.create_artifact(
+        session,
+        job_id=uuid.UUID(body.job_id),
+        stage=body.stage,
+        content_hash=body.content_hash,
+        software_version=body.software_version,
+        transforms=body.transforms,
+        units=body.units,
+        coordinate_system=body.coordinate_system,
+        privacy_classification=body.privacy_classification,
+        fidelity_warnings=body.fidelity_warnings,
+        s3_key=body.s3_key,
+        byte_size=body.byte_size,
+    )
+    return _serialize(artifact)
 
 
 @router.get("/artifacts/{artifact_id}")

@@ -10,26 +10,25 @@ Pipeline stages executed sequentially:
 
 Each stage:
   1. Validates the transition via the state machine
-  2. Updates job status in the callback store
+  2. Updates job status via the Platform API callback
   3. Invokes the stage-specific CLI command
-  4. Registers any produced artifacts with immutable identifiers
-  5. Advances to the next stage
+  4. Uploads produced artifacts to S3/MinIO
+  5. Registers artifacts with the Platform API
+  6. Advances to the next stage
 
 Safety:
   - No arbitrary shell parameters from clients — config is validated
   - Subprocess uses explicit arg list, never shell=True
   - Timeout per stage prevents runaway processes
   - Artifacts are content-addressed (SHA-256) and immutable
+  - Idempotent retries — stages check for existing output before re-running
 """
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import os
 import subprocess
-import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +85,19 @@ ALLOWED_CONFIG_KEYS: frozenset[str] = frozenset(
     }
 )
 
+# Error categories for structured failure reporting
+ERROR_CATEGORIES: dict[str, str] = {
+    "INVALID_INPUT": "Input validation failed",
+    "COLMAP_FAILURE": "COLMAP reconstruction failed",
+    "GPU_UNAVAILABLE": "GPU not available or insufficient memory",
+    "NO_GLB_OUTPUT": "Exporter produced no GLB file",
+    "INVALID_HASH": "Artifact content hash mismatch after upload",
+    "UPLOAD_FAILED": "Failed to upload artifact to object store",
+    "TIMEOUT": "Stage exceeded maximum allowed time",
+    "MISSING_REFERENCE": "Scale reference data not found",
+    "SUBPROCESS_ERROR": "Reconstruction subprocess exited with error",
+}
+
 
 def _validate_config(config: dict[str, Any]) -> dict[str, Any]:
     """Filter config to only allowed keys, preventing injection."""
@@ -125,77 +137,114 @@ def _build_cli_args(
     return args
 
 
-def _compute_artifact_hash(artifact_path: Path) -> str:
-    """Compute SHA-256 content hash for an artifact file."""
-    h = hashlib.sha256()
-    with open(artifact_path, "rb") as f:
-        for chunk in iter(lambda: f.read(8192), b""):
-            h.update(chunk)
-    return h.hexdigest()
+def _categorize_error(stage: JobStatus, stderr: str, returncode: int) -> str:
+    """Categorize a stage failure for structured error reporting."""
+    stderr_lower = stderr.lower()
+
+    if stage == JobStatus.VALIDATING:
+        return "INVALID_INPUT"
+    if "colmap" in stderr_lower or "sfm" in stderr_lower:
+        return "COLMAP_FAILURE"
+    if "cuda" in stderr_lower or "gpu" in stderr_lower or "out of memory" in stderr_lower:
+        return "GPU_UNAVAILABLE"
+    if stage == JobStatus.EXPORTING and ("no glb" in stderr_lower or "no output" in stderr_lower):
+        return "NO_GLB_OUTPUT"
+    if "reference" in stderr_lower and "not found" in stderr_lower:
+        return "MISSING_REFERENCE"
+    return "SUBPROCESS_ERROR"
 
 
-class JobCallbacks:
-    """Interface for job status and artifact updates.
+def _check_stage_idempotent(work_dir: str, stage: JobStatus) -> bool:
+    """Check if a stage has already completed (idempotent retry check).
 
-    In production, this posts back to the API service via HTTP.
-    In tests, it can be replaced with a mock or in-memory store.
+    Looks for a sentinel file that indicates the stage ran successfully.
     """
+    sentinel = Path(work_dir) / f".stage_complete_{stage.value.lower()}"
+    return sentinel.exists()
 
-    def __init__(self, api_base_url: str | None = None) -> None:
-        self.api_base_url = api_base_url or os.environ.get("SCANNIT_API_URL", "http://api:8000")
-        # In-memory fallback for when API is not reachable
-        self._local_state: dict[str, dict[str, Any]] = {}
 
-    def update_job_status(
-        self,
-        job_id: str,
-        status: JobStatus,
-        progress_pct: float,
-        error_message: str | None = None,
-    ) -> None:
-        """Update job status — posts to API or stores locally."""
-        logger.info(
-            "Job %s → %s (%.1f%%)",
-            job_id,
-            status.value,
-            progress_pct,
+def _mark_stage_complete(work_dir: str, stage: JobStatus) -> None:
+    """Write a sentinel file indicating a stage completed successfully."""
+    sentinel = Path(work_dir) / f".stage_complete_{stage.value.lower()}"
+    sentinel.touch()
+
+
+def _collect_and_upload_artifacts(
+    job_id: str,
+    stage: JobStatus,
+    work_dir: str,
+    callbacks: ApiJobCallbacks,
+) -> list[dict[str, str]]:
+    """Collect artifacts from a stage, upload to S3, and register with API.
+
+    Returns list of artifact metadata dicts.
+    """
+    from app.workers.s3_upload import (
+        build_s3_key,
+        compute_file_hash,
+        get_content_type,
+        upload_artifact,
+    )
+
+    artifacts: list[dict[str, str]] = []
+    stage_output_dir = Path(work_dir) / stage.value.lower()
+
+    if not stage_output_dir.exists():
+        return artifacts
+
+    for artifact_file in stage_output_dir.iterdir():
+        if not artifact_file.is_file():
+            continue
+
+        content_hash = compute_file_hash(artifact_file)
+        byte_size = artifact_file.stat().st_size
+        content_type = get_content_type(artifact_file.name)
+
+        # Build content-addressed S3 key
+        s3_key = build_s3_key(
+            job_id=job_id,
+            stage=stage.value.lower(),
+            content_hash=content_hash,
+            filename=artifact_file.name,
         )
-        self._local_state[job_id] = {
-            "status": status.value,
-            "progress_pct": progress_pct,
-            "error_message": error_message,
-            "updated_at": datetime.now(UTC).isoformat(),
-        }
-        # TODO: POST to {api_base_url}/api/v1/jobs/{job_id}/status
-        # when the API status-update endpoint is ready
 
-    def register_artifact(
-        self,
-        job_id: str,
-        stage: JobStatus,
-        artifact_path: str,
-        content_hash: str,
-        byte_size: int,
-    ) -> str:
-        """Register an immutable artifact — returns artifact ID."""
-        artifact_id = str(uuid.uuid4())
-        logger.info(
-            "Artifact registered: job=%s stage=%s hash=%s id=%s",
-            job_id,
-            stage.value,
-            content_hash[:12],
-            artifact_id,
+        # Upload to S3/MinIO
+        upload_ok = upload_artifact(
+            artifact_file,
+            s3_key,
+            content_type=content_type,
         )
-        # TODO: POST to {api_base_url}/api/v1/artifacts
-        return artifact_id
 
-    def mark_complete(self, job_id: str) -> None:
-        """Mark job as complete with timestamp."""
-        self.update_job_status(job_id, JobStatus.COMPLETE, 100.0)
+        if not upload_ok:
+            logger.error(
+                "Failed to upload artifact %s for job %s",
+                artifact_file.name,
+                job_id,
+            )
+            continue
 
-    def mark_failed(self, job_id: str, error: str) -> None:
-        """Mark job as failed with error message."""
-        self.update_job_status(job_id, JobStatus.FAILED, 0.0, error)
+        # Register with Platform API
+        artifact_id = callbacks.register_artifact(
+            job_id=job_id,
+            stage=stage,
+            artifact_path=str(artifact_file),
+            content_hash=content_hash,
+            byte_size=byte_size,
+            s3_key=s3_key,
+        )
+
+        artifacts.append(
+            {
+                "id": artifact_id or "unknown",
+                "stage": stage.value,
+                "content_hash": content_hash,
+                "s3_key": s3_key,
+                "path": str(artifact_file),
+                "byte_size": str(byte_size),
+            }
+        )
+
+    return artifacts
 
 
 @celery.task(
@@ -225,23 +274,46 @@ def run_reconstruction(
     Returns:
         Dict with job_id, final status, and list of artifact IDs produced
     """
+    from app.workers.api_callbacks import ApiJobCallbacks
+
     safe_config = _validate_config(config or {})
-    callbacks = JobCallbacks()
+    callbacks = ApiJobCallbacks()
     artifacts: list[dict[str, str]] = []
 
+    try:
+        return _execute_pipeline(
+            self, job_id, dataset_id, project_id, safe_config, callbacks, artifacts
+        )
+    finally:
+        callbacks.close()
+
+
+def _execute_pipeline(
+    task,  # noqa: ANN001
+    job_id: str,
+    dataset_id: str,
+    project_id: str,
+    config: dict[str, Any],
+    callbacks: ApiJobCallbacks,
+    artifacts: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Core pipeline execution — extracted for testability."""
     # Resolve paths
     data_root = os.environ.get("SCANNIT_DATA_ROOT", "/data")
     dataset_path = os.path.join(data_root, "datasets", dataset_id)
     work_dir = os.path.join(data_root, "jobs", job_id)
     os.makedirs(work_dir, exist_ok=True)
 
+    # Write stage log
+    stage_log_path = Path(work_dir) / "stage_log.jsonl"
+
     current_status = JobStatus.CREATED
-    # Executable stages: skip CREATED (it's the initial state) and COMPLETE (final)
+    # Executable stages: skip CREATED (initial) and COMPLETE (final)
     executable_stages = PIPELINE_STAGES[1:-1]  # VALIDATING through QC
 
     for target_stage in executable_stages:
         # Check for cancellation
-        if self.is_aborted():
+        if task.is_aborted():
             callbacks.update_job_status(
                 job_id,
                 JobStatus.CANCELLED,
@@ -260,13 +332,28 @@ def run_reconstruction(
         progress = compute_progress(current_status)
         callbacks.update_job_status(job_id, current_status, progress)
 
+        # Idempotent check — skip if stage already completed (retry scenario)
+        if _check_stage_idempotent(work_dir, target_stage):
+            logger.info(
+                "Stage %s already completed for job %s (idempotent skip)",
+                target_stage.value,
+                job_id,
+            )
+            # Still collect artifacts from completed stage
+            if target_stage in ARTIFACT_PRODUCING_STAGES:
+                stage_artifacts = _collect_and_upload_artifacts(
+                    job_id, target_stage, work_dir, callbacks
+                )
+                artifacts.extend(stage_artifacts)
+            continue
+
         # Build and execute CLI command
         cli_args = _build_cli_args(
             stage=target_stage,
             job_id=job_id,
             dataset_path=dataset_path,
             work_dir=work_dir,
-            config=safe_config,
+            config=config,
         )
 
         timeout = STAGE_TIMEOUTS.get(target_stage, 1800)
@@ -280,53 +367,82 @@ def run_reconstruction(
                 cwd=work_dir,
             )
 
+            # Log stage output
+            _append_stage_log(
+                stage_log_path,
+                target_stage,
+                result.returncode,
+                result.stdout[-500:] if result.stdout else "",
+                result.stderr[-500:] if result.stderr else "",
+            )
+
             if result.returncode != 0:
-                error_msg = f"Stage {target_stage.value} failed (exit {result.returncode}): {result.stderr[:500]}"
+                error_category = _categorize_error(
+                    target_stage, result.stderr, result.returncode
+                )
+                error_msg = (
+                    f"[{error_category}] Stage {target_stage.value} failed "
+                    f"(exit {result.returncode}): {result.stderr[:500]}"
+                )
                 logger.error(error_msg)
 
                 # Retry logic for transient failures
-                if self.request.retries < self.max_retries:
+                if task.request.retries < task.max_retries:
                     callbacks.update_job_status(
                         job_id,
                         JobStatus.RETRYING,
                         progress,
                         error_message=error_msg,
                     )
-                    raise self.retry(exc=RuntimeError(error_msg))
+                    raise task.retry(exc=RuntimeError(error_msg))
 
                 callbacks.mark_failed(job_id, error_msg)
-                return {"job_id": job_id, "status": "FAILED", "error": error_msg}
+                return {
+                    "job_id": job_id,
+                    "status": "FAILED",
+                    "error": error_msg,
+                    "error_category": error_category,
+                }
 
         except subprocess.TimeoutExpired:
-            error_msg = f"Stage {target_stage.value} timed out after {timeout}s"
+            error_msg = f"[TIMEOUT] Stage {target_stage.value} timed out after {timeout}s"
             logger.error(error_msg)
             callbacks.mark_failed(job_id, error_msg)
-            return {"job_id": job_id, "status": "FAILED", "error": error_msg}
+            return {
+                "job_id": job_id,
+                "status": "FAILED",
+                "error": error_msg,
+                "error_category": "TIMEOUT",
+            }
 
-        # Register artifacts for stages that produce them
+        # Mark stage as complete (for idempotent retries)
+        _mark_stage_complete(work_dir, target_stage)
+
+        # Collect and upload artifacts for producing stages
         if target_stage in ARTIFACT_PRODUCING_STAGES:
-            stage_output_dir = Path(work_dir) / target_stage.value.lower()
-            if stage_output_dir.exists():
-                for artifact_file in stage_output_dir.iterdir():
-                    if artifact_file.is_file():
-                        content_hash = _compute_artifact_hash(artifact_file)
-                        byte_size = artifact_file.stat().st_size
-                        artifact_id = callbacks.register_artifact(
-                            job_id=job_id,
-                            stage=target_stage,
-                            artifact_path=str(artifact_file),
-                            content_hash=content_hash,
-                            byte_size=byte_size,
-                        )
-                        artifacts.append(
-                            {
-                                "id": artifact_id,
-                                "stage": target_stage.value,
-                                "content_hash": content_hash,
-                                "path": str(artifact_file),
-                                "byte_size": byte_size,
-                            }
-                        )
+            stage_artifacts = _collect_and_upload_artifacts(
+                job_id, target_stage, work_dir, callbacks
+            )
+            artifacts.extend(stage_artifacts)
+
+            # Verify GLB output at EXPORTING stage
+            if target_stage == JobStatus.EXPORTING:
+                glb_found = any(
+                    a.get("s3_key", "").endswith(".glb") for a in stage_artifacts
+                )
+                if not glb_found:
+                    error_msg = (
+                        "[NO_GLB_OUTPUT] EXPORTING stage completed but no GLB "
+                        "artifact was produced"
+                    )
+                    logger.error(error_msg)
+                    callbacks.mark_failed(job_id, error_msg)
+                    return {
+                        "job_id": job_id,
+                        "status": "FAILED",
+                        "error": error_msg,
+                        "error_category": "NO_GLB_OUTPUT",
+                    }
 
     # Transition to COMPLETE
     try:
@@ -342,3 +458,28 @@ def run_reconstruction(
         "artifacts": artifacts,
         "artifact_count": len(artifacts),
     }
+
+
+def _append_stage_log(
+    log_path: Path,
+    stage: JobStatus,
+    returncode: int,
+    stdout_tail: str,
+    stderr_tail: str,
+) -> None:
+    """Append a stage execution record to the job's stage log."""
+    import json
+    from datetime import UTC, datetime
+
+    record = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "stage": stage.value,
+        "returncode": returncode,
+        "stdout_tail": stdout_tail.strip(),
+        "stderr_tail": stderr_tail.strip(),
+    }
+    try:
+        with open(log_path, "a") as f:
+            f.write(json.dumps(record) + "\n")
+    except OSError:
+        logger.warning("Could not write stage log to %s", log_path)
